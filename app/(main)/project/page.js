@@ -116,7 +116,7 @@ export default function App() {
             <h2 className="font-bold mb-3">프로젝트 관리</h2>
           </div>
           <div className="flex w-full gap-x-2 justify-between">
-            <div className="grid grid-cols-2 gap-x-2">
+            <div className="flex gap-x-2">
               <Select
                 items={animals}
                 placeholder="Select an animal"
@@ -152,7 +152,6 @@ export default function App() {
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
           className="w-full"
-          isStriped
         >
           <TableHeader columns={columns}>
             {(column) => (

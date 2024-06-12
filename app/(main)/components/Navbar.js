@@ -9,21 +9,15 @@ export default function App() {
   const pathname=usePathname()
   console.log(pathname)
   const menuItems = [
-    "Profile",
-    "Dashboard",
-    "Activity",
-    "Analytics",
-    "System",
-    "Deployments",
-    "My Settings",
-    "Team Settings",
-    "Help & Feedback",
-    "Log Out",
+    "인플루언서 리스트",
+    "프로젝트 관리",
+    "고객사 계정 관리",
+    "계약자 관리",
   ];
 
   return (
-    <Navbar onMenuOpenChange={setIsMenuOpen} className="w-4/5 mx-auto">
-      <NavbarContent>
+    <Navbar onMenuOpenChange={setIsMenuOpen} className="w-full">
+      <NavbarContent className='w-full'>
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           className="sm:hidden"

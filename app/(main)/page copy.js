@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React from "react";
 import {
   Table,
   TableHeader,
@@ -22,69 +22,50 @@ import {
   ModalFooter,
   useDisclosure,
   Checkbox,
-  Spinner
 } from "@nextui-org/react";
+import { useState } from "react";
 import { users } from "./components/data";
 import { animals } from "./components/data";
-import useSWR from "swr";
-
-const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
 export default function App() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
-  const [editingHeight, setEditingHeight] = useState({});
+  const [page, setPage] = React.useState(1);
+  const rowsPerPage = 4;
+  const [checkedItems, setCheckedItems] = React.useState({});
+  const [selectAll, setSelectAll] = React.useState(false);
 
-  const { data, isLoading } = useSWR(`https://swapi.py4e.com/api/people?page=${page}`, fetcher, {
-    keepPreviousData: true,
-  });
+  const pages = Math.ceil(users.length / rowsPerPage);
 
-  const rowsPerPage = 10;
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
 
-  const pages = useMemo(() => {
-    return data?.count ? Math.ceil(data.count / rowsPerPage) : 0;
-  }, [data?.count, rowsPerPage]);
-
-  useEffect(() => {
-    if (data?.results) {
-      setSelected(data.results.map(item => ({ ...item, checked: selectAll })));
-    }
-  }, [data, selectAll]);
-
-  const handleSelectAll = () => {
-    setSelectAll(!selectAll);
-    setSelected(prevSelected => prevSelected.map(item => ({ ...item, checked: !selectAll })));
-  };
+    return users.slice(start, end);
+  }, [page, users]);
 
   const handleCheckboxChange = (name) => {
-    setSelected(prevSelected =>
-      prevSelected.map(item =>
-        item.name === name ? { ...item, checked: !item.checked } : item
-      )
-    );
+    setCheckedItems((prev) => ({
+      ...prev,
+      [name]: !prev[name],
+    }));
   };
 
-  const handleHeightClick = (name) => {
-    setEditingHeight({ ...editingHeight, [name]: true });
+  const handleSelectAllChange = () => {
+    const newSelectAll = !selectAll;
+    setSelectAll(newSelectAll);
+
+    const newCheckedItems = {};
+    if (newSelectAll) {
+      items.forEach((item) => {
+        newCheckedItems[item.name] = true;
+      });
+    } else {
+      items.forEach((item) => {
+        newCheckedItems[item.name] = false;
+      });
+    }
+    setCheckedItems(newCheckedItems);
   };
-
-  const handleHeightChange = (name, value) => {
-    setSelected(prevSelected =>
-      prevSelected.map(item =>
-        item.name === name ? { ...item, height: value } : item
-      )
-    );
-  };
-
-  const handleHeightBlur = (name) => {
-    setEditingHeight({ ...editingHeight, [name]: false });
-  };
-
-  const loadingState = isLoading || data?.results.length === 0 ? "loading" : "idle";
-
-
 
   return (
     <>
@@ -203,53 +184,54 @@ export default function App() {
           </div>
         </div>
         <Table
-        isStriped
-        className='mb-5'
-      aria-label="Example table with client async pagination"
-      bottomContent={
-        pages > 0 ? (
-          <div className="flex w-full justify-center">
-            <Pagination
-              isCompact
-              showControls
-              showShadow
-              color="primary"
-              page={page}
-              total={pages}
-              onChange={(page) => setPage(page)}
-            />
-          </div>
-        ) : null
-      }
-    >
-      <TableHeader>
-        <TableColumn key="checkbox">
-          <Checkbox isSelected={selectAll} onChange={handleSelectAll} />
-        </TableColumn>
-        <TableColumn key="name">Name</TableColumn>
-        <TableColumn key="height">Height</TableColumn>
-        <TableColumn key="mass">Mass</TableColumn>
-        <TableColumn key="birth_year">Birth year</TableColumn>
-      </TableHeader>
-      <TableBody
-        items={selected ?? []}
-        loadingContent={<Spinner />}
-        loadingState={loadingState}
-        
-      >
-        {(item) => (
-          <TableRow key={item?.name}>
-            <TableCell>
-              <Checkbox isSelected={item.checked} onChange={() => handleCheckboxChange(item.name)} />
-            </TableCell>
-            <TableCell>{item.name}</TableCell>
-            <TableCell>{item.height}</TableCell>
-            <TableCell>{item.mass}</TableCell>
-            <TableCell>{item.birth_year}</TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+          aria-label="Example table with client side pagination"
+          bottomContent={
+            <div className="flex w-full justify-center">
+              <Pagination
+                isCompact
+                showControls
+                showShadow
+                color="secondary"
+                page={page}
+                total={pages}
+                onChange={(page) => setPage(page)}
+              />
+            </div>
+          }
+          classNames={{
+            wrapper: "min-h-[222px]",
+          }}
+        >
+          <TableHeader>
+            <TableColumn key="checkbox">
+              <Checkbox
+                isSelected={selectAll}
+                onChange={handleSelectAllChange}
+              />
+            </TableColumn>
+            <TableColumn key="name">NAME</TableColumn>
+            <TableColumn key="role">ROLE</TableColumn>
+            <TableColumn key="status">STATUS</TableColumn>
+          </TableHeader>
+          <TableBody items={items}>
+            {(item) => (
+              <TableRow key={item.name}>
+                {(columnKey) => (
+                  <TableCell>
+                    {columnKey === "checkbox" ? (
+                      <Checkbox
+                        isSelected={checkedItems[item.name] || false}
+                        onChange={() => handleCheckboxChange(item.name)}
+                      />
+                    ) : (
+                      getKeyValue(item, columnKey)
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
         <div className="flex justify-between">
           <div className="flex gap-x-2">
             <Button variant="bordered" radius="md" onPress={onOpen}>
