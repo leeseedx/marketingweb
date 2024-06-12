@@ -2,10 +2,12 @@
 import React from "react";
 import {Navbar, NavbarBrand, NavbarContent, NavbarItem, NavbarMenuToggle, NavbarMenu, NavbarMenuItem, Link, Button} from "@nextui-org/react";
 import {useState} from "react";
+import { usePathname } from "next/navigation";
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
+  const pathname=usePathname()
+  console.log(pathname)
   const menuItems = [
     "Profile",
     "Dashboard",
@@ -20,35 +22,38 @@ export default function App() {
   ];
 
   return (
-    <Navbar onMenuOpenChange={setIsMenuOpen}>
+    <Navbar onMenuOpenChange={setIsMenuOpen} className="w-4/5 mx-auto">
       <NavbarContent>
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           className="sm:hidden"
         />
         <NavbarBrand>
-          <p className="font-bold text-inherit">LEESEEDX</p>
+          <Link href="/">
+          <p className="font-bold text-inherit text-primary">LEESEEDX</p>
+          </Link>
+          
         </NavbarBrand>
       </NavbarContent>
 
       <NavbarContent className="hidden sm:flex gap-4" justify="center">
         <NavbarItem>
-          <Link color="foreground" href="/">
+          <Link href="/" className={`${pathname === "/" ? "font-bold text-primary" : "text-black"}`}>
             인플루언서 리스트
           </Link>
         </NavbarItem>
-        <NavbarItem isActive>
-          <Link href="/project" aria-current="page">
+        <NavbarItem>
+          <Link href="/project" className={`${pathname === "/project" ? "font-bold text-primary" : "text-black"}`}>
             프로젝트 관리
           </Link>
         </NavbarItem>
         <NavbarItem>
-          <Link color="foreground" href="/account">
+          <Link href="/account" className={`${pathname === "/account" ? "font-bold text-primary" : "text-black"}`}>
             고객사 계정 관리
           </Link>
         </NavbarItem>
         <NavbarItem>
-          <Link color="foreground" href="/contract">
+          <Link href="/contract" className={`${pathname === "/contract" ? "font-bold text-primary" : "text-black"}`}>
             계약자 관리
           </Link>
         </NavbarItem>

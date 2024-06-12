@@ -15,6 +15,14 @@ import { Button } from "@nextui-org/react";
 import { animals } from "./components/data";
 import { Divider } from "@nextui-org/react";
 import { Input } from "@nextui-org/react";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+} from "@nextui-org/react";
 
 const rows = [
   {
@@ -60,10 +68,50 @@ const columns = [
 
 export default function App() {
   const [selectedKeys, setSelectedKeys] = React.useState(new Set(["2"]));
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   return (
     <>
-      <div className="px-[10vw] py-[5vh] ">
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Modal Title
+              </ModalHeader>
+              <ModalBody>
+                <p>
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                  Nullam pulvinar risus non risus hendrerit venenatis.
+                  Pellentesque sit amet hendrerit risus, sed porttitor quam.
+                </p>
+                <p>
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                  Nullam pulvinar risus non risus hendrerit venenatis.
+                  Pellentesque sit amet hendrerit risus, sed porttitor quam.
+                </p>
+                <p>
+                  Magna exercitation reprehenderit magna aute tempor cupidatat
+                  consequat elit dolor adipisicing. Mollit dolor eiusmod sunt ex
+                  incididunt cillum quis. Velit duis sit officia eiusmod Lorem
+                  aliqua enim laboris do dolor eiusmod. Et mollit incididunt
+                  nisi consectetur esse laborum eiusmod pariatur proident Lorem
+                  eiusmod et. Culpa deserunt nostrud ad veniam.
+                </p>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Close
+                </Button>
+                <Button color="primary" onPress={onClose}>
+                  Action
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+      <div className="px-[20vw] py-[5vh] ">
         <div className="mb-5">
           <div>
             <h2 className="font-bold mb-3">인플루언서 리스트</h2>
@@ -97,25 +145,25 @@ export default function App() {
               {(animal) => <SelectItem>{animal.label}</SelectItem>}
             </Select>
           </div>
-          <div className="col-span-3 flex gap-x-2">
+          <div className="col-span-3 grid grid-cols-3 gap-x-2">
             <Select
               items={animals}
               placeholder="Select an animal"
-              className="w-1/3"
+              className="col-span-1"
             >
               {(animal) => <SelectItem>{animal.label}</SelectItem>}
             </Select>
             <Select
               items={animals}
               placeholder="Select an animal"
-              className="w-1/3"
+              className="col-span-1"
             >
               {(animal) => <SelectItem>{animal.label}</SelectItem>}
             </Select>
             <Select
               items={animals}
               placeholder="Select an animal"
-              className="w-1/3"
+              className="col-span-1"
             >
               {(animal) => <SelectItem>{animal.label}</SelectItem>}
             </Select>
@@ -165,14 +213,22 @@ export default function App() {
         </div>
         <div className="flex justify-between">
           <div className="flex gap-x-2">
-            <Button radius="md">개별 등록</Button>
-            <Button radius="md">엑셀 대량 등록</Button>
-            <Button radius="md">추가 정보 대량 등록</Button>
+            <Button variant="bordered" radius="md" onPress={onOpen}>
+              개별 등록
+            </Button>
+            <Button variant="bordered" radius="md" onPress={onOpen}>
+              엑셀 대량 등록
+            </Button>
+            <Button variant="bordered" radius="md" onPress={onOpen}>
+              추가 정보 대량 등록
+            </Button>
           </div>
 
           <div className="flex gap-x-2">
-            <Button radius="md">엑셀추출</Button>
-            <Button color="primary" className="col-span-1">
+            <Button variant="bordered" radius="md" onPress={onOpen}>
+              엑셀추출
+            </Button>
+            <Button color="primary" className="col-span-1" onPress={onOpen}>
               저장
             </Button>
           </div>
