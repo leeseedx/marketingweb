@@ -192,6 +192,8 @@ export default function App() {
           selectedKeys={selectedKeys}
           onSelectionChange={setSelectedKeys}
           className="w-full"
+          isStriped
+          
         >
           <TableHeader columns={columns}>
             {(column) => (
