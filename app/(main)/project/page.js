@@ -77,32 +77,86 @@ export default function App() {
   const [selectedProjectName, setSelectedProjectName] = useState("");
   const [filterLoading1, setFilterLoading1] = useState(false);
   const [filterLoading2, setFilterLoading2] = useState(false);
+  const [items, setItems] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [modalType, setModalType] = useState("");
+  const [changeCompanyName, setChangeCompanyName] = useState("");
+  const [changeProjectName, setChangeProjectName] = useState("");
+
   const supabase = createClient();
-  const [items,setItems] = useState([]);
-  
+  console.log('selectedProjectName:',selectedProjectName)
   const getItems = async () => {
-    let { data: project, error } = await supabase.from("project").select("*");
+    const itemsPerPage = 5;
+    const offset = (currentPage - 1) * itemsPerPage;
+    let {
+      data: project,
+      error,
+      count,
+    } = selectedCompanyName && selectedCompanyName !== "전체"
+      ? selectedProjectName && selectedProjectName !== "전체"
+        ? await supabase
+            .from("project")
+            .select("*", { count: "exact" })
+            .eq("companyName", selectedCompanyName)
+            .eq("projectName", selectedProjectName)
+            .range(offset, offset + itemsPerPage - 1)
+        : await supabase
+            .from("project")
+            .select("*", { count: "exact" })
+            .eq("companyName", selectedCompanyName)
+            .range(offset, offset + itemsPerPage - 1)
+      : searchKeyword
+      ? await supabase
+          .from("project")
+          .select("*", { count: "exact" })
+          .or(
+            `companyName.ilike.%${searchKeyword}%,projectName.ilike.%${searchKeyword}%`
+          )
+          .range(offset, offset + itemsPerPage - 1)
+      : await supabase
+          .from("project")
+          .select("*", { count: "exact" })
+          .range(offset, offset + itemsPerPage - 1);
+
+    if (!error) {
+      setTotalPages(Math.ceil(count / itemsPerPage));
+    }
     if (error) {
       console.log(error);
     } else {
-      const formattedProject = project.map(item => ({
+      const formattedProject = project.map((item) => ({
         ...item,
         생성일자: item.created_at,
         고객사명: item.companyName,
         프로젝트명: item.projectName,
       }));
-      setItems(formattedProject);
+
+      const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}.${month}.${day}`;
+      };
+
+      const formattedProjectWithDate = formattedProject.map((item) => ({
+        ...item,
+        생성일자: formatDate(item.created_at),
+      }));
+      setItems(formattedProjectWithDate);
     }
   };
 
-  console.log('items:',items)
-
+  console.log("projectNames:", projectNames);
   const getFilter1 = async () => {
     let { data: project, error } = await supabase.from("project").select("*");
     if (error) {
       console.log(error);
     } else {
       const companyNames = [
+        { key: -1, label: "전체" },
         ...project.reduce((acc, item, index) => {
           if (!acc.some(({ label }) => label === item.companyName)) {
             acc.push({ key: index, label: item.companyName });
@@ -115,7 +169,10 @@ export default function App() {
     }
   };
   const getFilter2 = async () => {
-    let { data: project, error } = await supabase.from("project").select("*").eq("companyName",selectedCompanyName);
+    let { data: project, error } = await supabase
+      .from("project")
+      .select("*")
+      .eq("companyName", selectedCompanyName);
     if (error) {
       console.log(error);
     } else {
@@ -127,23 +184,95 @@ export default function App() {
           return acc;
         }, []),
       ];
+      if (projectNames.length > 0) {
+        projectNames.unshift({ key: -1, label: "전체" });
+      }
       setProjectNames(projectNames);
       setFilterLoading2(true);
     }
   };
   useEffect(() => {
     getFilter1();
-    getItems()
+    getItems();
   }, []);
 
-  useEffect(()=>{
+  useEffect(() => {
     getFilter2();
-  },[selectedCompanyName,selectedProjectName])
-  
+    getItems();
+  }, [selectedCompanyName, selectedProjectName, currentPage]);
 
-  console.log(companyNames)
-  console.log('projectNames:',projectNames)
-  console.log('selectedCompanyName:',selectedCompanyName)
+  useEffect(() => {
+    if (selectedKeys) {
+      const lastSelectedKey = Array.from(selectedKeys).map(Number).pop();
+      const selectedItem = items.find((item) => item.id === lastSelectedKey);
+
+      if (selectedItem) {
+        setChangeCompanyName(selectedItem.companyName);
+        setChangeProjectName(selectedItem.projectName);
+      }
+    }
+  }, [selectedKeys]);
+
+  const deleteSelectedItems = async () => {
+    if (selectedKeys && selectedKeys.size > 0) {
+      const idsToDelete = Array.from(selectedKeys).map(Number);
+
+      const { error } = await supabase
+        .from("project")
+        .delete()
+        .in("id", idsToDelete);
+
+      if (error) {
+        console.log("Error deleting items:", error);
+      } else {
+        console.log("Delete successfully");
+        // Optionally, refresh the items list after deletion
+        getItems();
+        getFilter1();
+        getFilter2();
+      }
+    } else {
+      console.log("No items selected for deletion.");
+    }
+  };
+
+  const changeSelectedItems = async () => {
+    const lastSelectedKey = Array.from(selectedKeys).map(Number).pop();
+    const { data, error } = await supabase
+      .from("project")
+      .update({
+        companyName: changeCompanyName,
+        projectName: changeProjectName,
+      })
+      .eq("id", lastSelectedKey)
+      .select();
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Update successfully");
+      getItems();
+      getFilter1();
+      getFilter2();
+    }
+  };
+
+  const addSelectedItems = async () => {
+    const { data, error } = await supabase
+      .from("project")
+      .insert([
+        { companyName: changeCompanyName, projectName: changeProjectName },
+      ])
+      .select();
+
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Add successfully");
+      getItems();
+      getFilter1();
+      getFilter2();
+    }
+  };
 
   return (
     <>
@@ -162,30 +291,37 @@ export default function App() {
                     className="w-full"
                   >
                     {(company) => (
-                      <SelectItem onClick={() => setSelectedCompanyName(company.label)}>
+                      <SelectItem
+                        onClick={() => {
+                          setSelectedCompanyName(company.label);
+                          setSelectedProjectName("전체");
+                        }}
+                      >
                         {company.label}
                       </SelectItem>
                     )}
                   </Select>
-                  
                 </>
               ) : (
                 <Spinner></Spinner>
               )}
-              {
-                projectNames.length>0?(
-                  <Select
+              {projectNames.length > 0 ? (
+                <Select
                   items={projectNames}
                   placeholder="Select an animal"
                   className="w-full"
                 >
-                  {(project) => <SelectItem>{project.label}</SelectItem>}
+                  {(project) => (
+                    <SelectItem
+                      onClick={() => setSelectedProjectName(project.label)}
+                    >
+                      {project.label}
+                    </SelectItem>
+                  )}
                 </Select>
-                ):(
-                  <></>
-                )
-              }
-
+              ) : (
+                <></>
+              )}
             </div>
 
             <div className="flex gap-x-2">
@@ -193,8 +329,10 @@ export default function App() {
                 type="text"
                 placeholder="검색어를 입력하세요"
                 className=""
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
               />
-              <Button color="primary" className="">
+              <Button color="primary" className="" onPress={() => getItems()}>
                 검색
               </Button>
             </div>
@@ -210,31 +348,66 @@ export default function App() {
         >
           <TableHeader columns={columns}>
             {(column) => (
-              <TableColumn key={column.key}>{column.label}</TableColumn>
+              <TableColumn className="w-1/3 text-center" key={column.key}>
+                {column.label}
+              </TableColumn>
             )}
           </TableHeader>
           <TableBody items={items}>
             {(item) => (
-              <TableRow key={item.key}>
+              <TableRow key={item.id}>
                 {(columnKey) => (
-                  <TableCell>{getKeyValue(item, columnKey)}</TableCell>
+                  <TableCell className="w-1/3 text-center">
+                    {getKeyValue(item, columnKey)}
+                  </TableCell>
                 )}
               </TableRow>
             )}
           </TableBody>
         </Table>
         <div className="flex justify-center items-center my-5">
-          <Pagination isCompact showControls total={10} initialPage={1} />
+          {totalPages ? (
+            <Pagination
+              isCompact
+              showControls
+              total={totalPages}
+              initialPage={1}
+              onChange={(page) => setCurrentPage(page)}
+            />
+          ) : (
+            <Spinner></Spinner>
+          )}
         </div>
         <div className="flex justify-end">
           <div className="flex gap-x-2">
-            <Button color="danger" radius="md" onPress={onOpen}>
+            <Button
+              color="danger"
+              radius="md"
+              onPress={() => {
+                setModalType("delete");
+                onOpen();
+              }}
+            >
               삭제
             </Button>
-            <Button color="success" radius="md" onPress={onOpen}>
+            <Button
+              color="success"
+              radius="md"
+              onPress={() => {
+                setModalType("edit");
+                onOpen();
+              }}
+            >
               수정
             </Button>
-            <Button color="primary" radius="md" onPress={onOpen}>
+            <Button
+              color="primary"
+              radius="md"
+              onPress={() => {
+                setModalType("add");
+                onOpen();
+              }}
+            >
               추가
             </Button>
           </div>
@@ -245,40 +418,97 @@ export default function App() {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1">
-                Modal Title
+                {modalType === "add" && "프로젝트 추가"}
+                {modalType === "edit" && "프로젝트 수정"}
+                {modalType === "delete" && "프로젝트 삭제"}
               </ModalHeader>
               <ModalBody>
-                <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                  Nullam pulvinar risus non risus hendrerit venenatis.
-                  Pellentesque sit amet hendrerit risus, sed porttitor quam.
-                </p>
-                <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                  Nullam pulvinar risus non risus hendrerit venenatis.
-                  Pellentesque sit amet hendrerit risus, sed porttitor quam.
-                </p>
-                <p>
-                  Magna exercitation reprehenderit magna aute tempor cupidatat
-                  consequat elit dolor adipisicing. Mollit dolor eiusmod sunt ex
-                  incididunt cillum quis. Velit duis sit officia eiusmod Lorem
-                  aliqua enim laboris do dolor eiusmod. Et mollit incididunt
-                  nisi consectetur esse laborum eiusmod pariatur proident Lorem
-                  eiusmod et. Culpa deserunt nostrud ad veniam.
-                </p>
+                {modalType === "add" && (
+                  <>
+                    <Input
+                      type="text"
+                      label="고객사명"
+                      placeholder="고객사명"
+                      value={changeCompanyName}
+                      onChange={(e) => setChangeCompanyName(e.target.value)}
+                    />
+                    <Input
+                      type="text"
+                      label="프로젝트명"
+                      placeholder="프로젝트명"
+                      value={changeProjectName}
+                      onChange={(e) => setChangeProjectName(e.target.value)}
+                    />
+                  </>
+                )}
+                {modalType === "edit" && (
+                  <>
+                    <Input
+                      type="text"
+                      label="고객사명"
+                      placeholder="고객사명"
+                      value={changeCompanyName}
+                      onChange={(e) => setChangeCompanyName(e.target.value)}
+                    />
+                    <Input
+                      type="text"
+                      label="프로젝트명"
+                      placeholder="프로젝트명"
+                      value={changeProjectName}
+                      onChange={(e) => setChangeProjectName(e.target.value)}
+                    />
+                  </>
+                )}
+                {modalType === "delete" && (
+                  <>
+                    <p>삭제 시 데이터 복구가 어렵습니다</p>
+                    <p>삭제 하시겠습니까?</p>
+                  </>
+                )}
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
+                <Button color="" variant="light" onPress={onClose}>
+                  닫기
                 </Button>
-                <Button color="primary" onPress={onClose}>
-                  Action
-                </Button>
+                {modalType === "add" && (
+                  <Button
+                    color="primary"
+                    onPress={() => {
+                      addSelectedItems();
+                      onClose();
+                    }}
+                  >
+                    추가하기
+                  </Button>
+                )}
+                {modalType === "edit" && (
+                  <Button
+                    color="success"
+                    onPress={() => {
+                      changeSelectedItems();
+                      onClose();
+                    }}
+                  >
+                    수정하기
+                  </Button>
+                )}
+                {modalType === "delete" && (
+                  <Button
+                    color="danger"
+                    onPress={() => {
+                      deleteSelectedItems();
+                      onClose();
+                    }}
+                  >
+                    삭제하기
+                  </Button>
+                )}
               </ModalFooter>
             </>
           )}
         </ModalContent>
       </Modal>
+
     </>
   );
 }
