@@ -84,11 +84,13 @@ export default function App() {
   const [modalType, setModalType] = useState("");
   const [changeCompanyName, setChangeCompanyName] = useState("");
   const [changeProjectName, setChangeProjectName] = useState("");
+  const [prevModalType, setPrevModalType] = useState("");
 
   const supabase = createClient();
-  console.log('selectedProjectName:',selectedProjectName)
+  
+
   const getItems = async () => {
-    const itemsPerPage = 5;
+    const itemsPerPage = 20;
     const offset = (currentPage - 1) * itemsPerPage;
     let {
       data: project,
@@ -149,7 +151,6 @@ export default function App() {
     }
   };
 
-  console.log("projectNames:", projectNames);
   const getFilter1 = async () => {
     let { data: project, error } = await supabase.from("project").select("*");
     if (error) {
@@ -271,6 +272,7 @@ export default function App() {
       getItems();
       getFilter1();
       getFilter2();
+      onOpen();
     }
   };
 
@@ -385,6 +387,7 @@ export default function App() {
               radius="md"
               onPress={() => {
                 setModalType("delete");
+                setPrevModalType("delete");
                 onOpen();
               }}
             >
@@ -395,6 +398,7 @@ export default function App() {
               radius="md"
               onPress={() => {
                 setModalType("edit");
+                setPrevModalType("edit");
                 onOpen();
               }}
             >
@@ -405,6 +409,7 @@ export default function App() {
               radius="md"
               onPress={() => {
                 setModalType("add");
+                setPrevModalType("add");
                 onOpen();
               }}
             >
@@ -413,102 +418,124 @@ export default function App() {
           </div>
         </div>
       </div>
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                {modalType === "add" && "프로젝트 추가"}
-                {modalType === "edit" && "프로젝트 수정"}
-                {modalType === "delete" && "프로젝트 삭제"}
-              </ModalHeader>
-              <ModalBody>
-                {modalType === "add" && (
-                  <>
-                    <Input
-                      type="text"
-                      label="고객사명"
-                      placeholder="고객사명"
-                      value={changeCompanyName}
-                      onChange={(e) => setChangeCompanyName(e.target.value)}
-                    />
-                    <Input
-                      type="text"
-                      label="프로젝트명"
-                      placeholder="프로젝트명"
-                      value={changeProjectName}
-                      onChange={(e) => setChangeProjectName(e.target.value)}
-                    />
-                  </>
-                )}
-                {modalType === "edit" && (
-                  <>
-                    <Input
-                      type="text"
-                      label="고객사명"
-                      placeholder="고객사명"
-                      value={changeCompanyName}
-                      onChange={(e) => setChangeCompanyName(e.target.value)}
-                    />
-                    <Input
-                      type="text"
-                      label="프로젝트명"
-                      placeholder="프로젝트명"
-                      value={changeProjectName}
-                      onChange={(e) => setChangeProjectName(e.target.value)}
-                    />
-                  </>
-                )}
-                {modalType === "delete" && (
-                  <>
-                    <p>삭제 시 데이터 복구가 어렵습니다</p>
-                    <p>삭제 하시겠습니까?</p>
-                  </>
-                )}
-              </ModalBody>
-              <ModalFooter>
-                <Button color="" variant="light" onPress={onClose}>
-                  닫기
-                </Button>
-                {modalType === "add" && (
-                  <Button
-                    color="primary"
-                    onPress={() => {
-                      addSelectedItems();
-                      onClose();
-                    }}
-                  >
-                    추가하기
+      {modalType !== "complete" && (
+        <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+          <ModalContent>
+            {(onClose) => (
+              <>
+                <ModalHeader className="flex flex-col gap-1">
+                  {modalType === "add" && "프로젝트 추가"}
+                  {modalType === "edit" && "프로젝트 수정"}
+                  {modalType === "delete" && "프로젝트 삭제"}
+                </ModalHeader>
+                <ModalBody>
+                  {modalType === "add" && (
+                    <>
+                      <Input
+                        type="text"
+                        label="고객사명"
+                        placeholder="고객사명"
+                        value={changeCompanyName}
+                        onChange={(e) => setChangeCompanyName(e.target.value)}
+                      />
+                      <Input
+                        type="text"
+                        label="프로젝트명"
+                        placeholder="프로젝트명"
+                        value={changeProjectName}
+                        onChange={(e) => setChangeProjectName(e.target.value)}
+                      />
+                    </>
+                  )}
+                  {modalType === "edit" && (
+                    <>
+                      <Input
+                        type="text"
+                        label="고객사명"
+                        placeholder="고객사명"
+                        value={changeCompanyName}
+                        onChange={(e) => setChangeCompanyName(e.target.value)}
+                      />
+                      <Input
+                        type="text"
+                        label="프로젝트명"
+                        placeholder="프로젝트명"
+                        value={changeProjectName}
+                        onChange={(e) => setChangeProjectName(e.target.value)}
+                      />
+                    </>
+                  )}
+                  {modalType === "delete" && (
+                    <>
+                      <p>삭제 시 데이터 복구가 어렵습니다</p>
+                      <p>삭제 하시겠습니까?</p>
+                    </>
+                  )}
+                </ModalBody>
+                <ModalFooter>
+                  <Button color="" variant="light" onPress={onClose}>
+                    닫기
                   </Button>
-                )}
-                {modalType === "edit" && (
-                  <Button
-                    color="success"
-                    onPress={() => {
-                      changeSelectedItems();
-                      onClose();
-                    }}
-                  >
-                    수정하기
+                  {modalType === "add" && (
+                    <Button
+                      color="primary"
+                      onPress={() => {
+                        addSelectedItems();
+                        setModalType("complete");
+                      }}
+                    >
+                      추가하기
+                    </Button>
+                  )}
+                  {modalType === "edit" && (
+                    <Button
+                      color="success"
+                      onPress={() => {
+                        changeSelectedItems();
+                        setModalType("complete");
+                      }}
+                    >
+                      수정하기
+                    </Button>
+                  )}
+                  {modalType === "delete" && (
+                    <Button
+                      color="danger"
+                      onPress={() => {
+                        deleteSelectedItems();
+                        
+                        setModalType("complete");
+                      }}
+                    >
+                      삭제하기
+                    </Button>
+                  )}
+                </ModalFooter>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
+      )}
+      {modalType === "complete" && (
+        <Modal isOpen={isOpen} onOpenChange={onOpenChange} isDismissable={false} isKeyboardDismissDisabled={true}>
+          <ModalContent>
+            {(onClose) => (
+              <>
+                <ModalBody className="flex p-5">
+                  {prevModalType === "add" && <p>저장 되었습니다.</p>}
+                  {prevModalType === "edit" && <p>수정이 완료되었습니다.</p>}
+                  {prevModalType === "delete" && <p>삭제 되었습니다.</p>}
+                </ModalBody>
+                <ModalFooter>
+                  <Button color="primary" onPress={onClose}>
+                    확인
                   </Button>
-                )}
-                {modalType === "delete" && (
-                  <Button
-                    color="danger"
-                    onPress={() => {
-                      deleteSelectedItems();
-                      onClose();
-                    }}
-                  >
-                    삭제하기
-                  </Button>
-                )}
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-
+                </ModalFooter>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
+      )}
     </>
   );
 }
