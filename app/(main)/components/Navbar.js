@@ -24,7 +24,7 @@ export default function App() {
         />
         <NavbarBrand>
           <Link href="/">
-          <p className="font-bold text-inherit text-primary">LEESEEDX</p>
+          <p className="font-bold text-inherit text-primary text-2xl">LEESEEDX</p>
           </Link>
           
         </NavbarBrand>
