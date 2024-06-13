@@ -150,7 +150,6 @@ export default function App() {
       setItems(formattedAccount);
     }
   };
-  console.log(items);
 
   const getFilter1 = async () => {
     let { data: account, error } = await supabase.from("account").select("*");
