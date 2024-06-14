@@ -26,7 +26,7 @@ import {
 } from "@nextui-org/react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-
+import {useRouter} from 'next/navigation'
 const rows = [
   {
     key: "1",
@@ -96,7 +96,7 @@ export default function App() {
   const [items, setItems] = useState([]);
 
   const supabase = createClient();
-
+  const router = useRouter();
   const getItems = async () => {
     const itemsPerPage = 20;
     const offset = (currentPage - 1) * itemsPerPage;
@@ -358,7 +358,12 @@ export default function App() {
             >
               삭제
             </Button>
-            <Button color="default" onPress={onOpen}>
+            <Button color="default" onClick={()=>{
+              const lastSelectedKey = Array.from(selectedKeys).map(String).pop();
+              if (lastSelectedKey) {
+                router.push(`/account/${lastSelectedKey}`);
+              }
+            }}>
               권한설정
             </Button>
             <Button
