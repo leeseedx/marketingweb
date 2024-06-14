@@ -103,11 +103,17 @@ export default function App() {
             .select("*", { count: "exact" })
             .eq("companyName", selectedCompanyName)
             .eq("projectName", selectedProjectName)
+            .or(
+              `companyName.ilike.%${searchKeyword}%,projectName.ilike.%${searchKeyword}%`
+            )
             .range(offset, offset + itemsPerPage - 1)
         : await supabase
             .from("project")
             .select("*", { count: "exact" })
             .eq("companyName", selectedCompanyName)
+            .or(
+              `companyName.ilike.%${searchKeyword}%,projectName.ilike.%${searchKeyword}%`
+            )
             .range(offset, offset + itemsPerPage - 1)
       : searchKeyword
       ? await supabase
