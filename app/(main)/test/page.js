@@ -1,28 +1,33 @@
-'use client'
+"use client";
 import React from "react";
-import {Select, SelectItem} from "@nextui-org/react";
-import {animals} from "../components/data";
+import { Select, SelectItem } from "@nextui-org/react";
+import { animals } from "../components/data";
+import { Button } from "@nextui-org/react";
+import { createClient } from "@/utils/supabase/client";
 
 export default function App() {
   const [values, setValues] = React.useState(new Set(["cat", "dog"]));
 
+  const supabase = createClient();
+
+  const registerAccount = async () => {
+    const { data, error } = await supabase.auth.signUp({
+      email: "hellfir2@naver.com",
+      password: "dlwndwo2",
+    });
+    if(error){
+      console.log(error);
+    }else{
+      console.log(data);
+    }
+  };
+
   return (
-    <div className="flex w-full max-w-xs flex-col gap-2">
-      <Select
-        label="Favorite Animal"
-        selectionMode="multiple"
-        placeholder="Select an animal"
-        selectedKeys={values}
-        className="max-w-xs"
-        onSelectionChange={setValues}
-      >
-        {animals.map((animal) => (
-          <SelectItem key={animal.key}>
-            {animal.label}
-          </SelectItem>
-        ))}
-      </Select>
-      <p className="text-small text-default-500">Selected: {Array.from(values).join(", ")}</p>
+    <div>
+      <Button color="primary" onClick={registerAccount}>
+        가입
+      </Button>
+      <Button color="secondary">로그인</Button>
     </div>
   );
 }

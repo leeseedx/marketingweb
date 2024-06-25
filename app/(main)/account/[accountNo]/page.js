@@ -53,10 +53,6 @@ const columns2 = [
     key: "프로젝트명",
     label: "프로젝트명",
   },
-  {
-    key: "권한",
-    label: "권한",
-  },
 ];
 
 const rows = [
@@ -110,6 +106,7 @@ function page({ params }) {
   const [projectsTotal, setProjectsTotal] = useState([]);
   const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
   const [selectedKeys2, setSelectedKeys2] = React.useState(new Set([]));
+
   const [modalType, setModalType] = useState("");
   const [prevModalType, setPrevModalType] = useState("");
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -119,6 +116,10 @@ function page({ params }) {
   const [projectNames, setProjectNames] = useState([]);
   const [selectedCompanyName, setSelectedCompanyName] = useState("");
   const [selectedProjectName, setSelectedProjectName] = useState("");
+  const [checkedProjectName, setCheckedProjectName] = useState(new Set());
+  const [checkedProjectNameDelete, setCheckedProjectNameDelete] = useState(
+    new Set()
+  );
   const [candidates, setCandidates] = useState([]);
   const [value, setValue] = useState([]);
 
@@ -165,8 +166,7 @@ function page({ params }) {
       setFilterLoading2(true);
     }
   };
-  console.log("companyNames:", companyNames);
-  console.log("animals:", animals);
+
   const getItems = async () => {
     let {
       data: account,
@@ -176,11 +176,10 @@ function page({ params }) {
       .from("account")
       .select("*", { count: "exact" })
       .eq("id", accountNo);
-    
+
     if (error) {
       console.log(error);
     } else {
-      
       const formattedAccount = account.map((item) => ({
         ...item,
         생성일자: item.created_at,
@@ -189,6 +188,7 @@ function page({ params }) {
         고객사ID: item.customerId,
         고객사PW: item.customerPw,
         연락처: item.customerPhoneNo,
+        권한: item.authorizedProject,
       }));
       setItems(formattedAccount);
     }
@@ -200,10 +200,17 @@ function page({ params }) {
       .from("project")
       .select("*", { count: "exact" })
       .eq("companyName", account[0].companyName);
-
-    if (selectedProjectName && selectedProjectName !== "전체") {
-      project = project.filter(item => item.projectName === selectedProjectName);
-    }
+    
+      let {
+        data: authProject,
+        error3,
+        count3,
+      } = await supabase
+        .from("authProject")
+        .select("*", { count: "exact" })
+        .eq("accountId", accountNo);
+    
+    
 
     if (error2) {
       console.log(error2);
@@ -213,26 +220,24 @@ function page({ params }) {
         생성일자: item.created_at,
         고객사명: item.companyName,
         프로젝트명: item.projectName,
-        권한: item.authority ? "있음" : "없음",
       }));
 
-      const projectsWithAuthority = formattedProject.filter(
-        (item) => item.권한 === "있음"
-      );
-      const projectsWithoutAuthority = formattedProject.sort((a, b) =>
-        b.권한.localeCompare(a.권한)
-      );
+      const formattedAuthProject = authProject.map((item) => ({
+        ...item,
+        생성일자: item.created_at,
+        고객사명: item.companyName,
+        프로젝트명: item.projectName,
+      }));
 
-      setProjects(projectsWithAuthority);
-      setProjectsTotal(projectsWithoutAuthority);
-
+      setProjects(formattedAuthProject);
+      setProjectsTotal(formattedProject);
       setIsLoading(true);
     }
-    setValue([account[0]?.companyName.toString()])
-    setSelectedCompanyName(account[0]?.companyName.toString())
+
+    setValue([account[0]?.companyName.toString()]);
+    setSelectedCompanyName(account[0]?.companyName.toString());
   };
 
-  console.log("items:",items)
   useEffect(() => {
     getItems();
     getFilter1();
@@ -245,43 +250,59 @@ function page({ params }) {
 
   const deleteSelectedItems = async () => {
     if (selectedKeys && selectedKeys.size > 0) {
-      const changeList = Array.from(selectedKeys).map(Number);
+      // const changeList = Array.from(projects).map((elem) => {
+      //   return { projectName: elem.projectName,companyName: elem.companyName,accountId:accountNo };
+      // });
 
-      for (const updateId of changeList) {
+      const selectedProjects = projectsTotal
+        .filter((project) => selectedKeys.has(String(project.id)))
+        .map((project) => ({
+          projectName: project.projectName,
+          companyName: project.companyName,
+          accountId: accountNo,
+        }));
+
+      console.log("selectedProjects:", selectedProjects);
+      for (const project of selectedProjects) {
         const { error } = await supabase
-          .from("project")
-          .update({ authority: false })
-          .eq("id", updateId);
-
+          .from("authProject")
+          .delete()
+          .eq("accountId", Number(accountNo))
+          .eq("projectName", project.projectName);
         if (error) {
           console.log("Error updating item with id:", updateId, error);
-          break;
         }
       }
+
       getItems();
+      setSelectedKeys(new Set());
+      setSelectedKeys2(new Set());
     }
   };
 
   const addSelectedItems = async () => {
     if (selectedKeys2 && selectedKeys2.size > 0) {
-      const changeList = Array.from(selectedKeys2).map(Number);
+      const formattedCheckedProjectName = Array.from(checkedProjectName).map(
+        (projectName) => ({
+          companyName: selectedCompanyName,
+          projectName: projectName,
+          accountId: Number(accountNo),
+        })
+      );
 
-      for (const updateId of changeList) {
-        const { error } = await supabase
-          .from("project")
-          .update({ authority: true })
-          .eq("id", updateId);
+      const { error } = await supabase.from("authProject").insert(formattedCheckedProjectName);
 
-        if (error) {
-          console.log("Error updating item with id:", updateId, error);
-          break;
-        }
+      if (error) {
+        console.log("Error updating item with id:", error);
       }
+
       getItems();
+      setSelectedKeys(new Set());
+      setSelectedKeys2(new Set());
     }
   };
 
-  console.log("selectedKeys2:",selectedKeys2)
+  console.log("selectedCompanyName:", selectedCompanyName);
 
   return (
     <div className="px-[20vw] py-[5vh] ">
@@ -332,12 +353,22 @@ function page({ params }) {
               selectionMode="multiple"
               isStriped
               selectedKeys={selectedKeys}
-              onSelectionChange={setSelectedKeys}
-
+              onSelectionChange={(keys) => {
+                setSelectedKeys(keys);
+                const selectedProjectNames = Array.from(keys)
+                  .map((key) => {
+                    const project = projects.find(
+                      (project) => project.key === key
+                    );
+                    return project ? project.projectName : null;
+                  })
+                  .filter((name) => name !== null);
+                setCheckedProjectNameDelete(new Set(selectedProjectNames));
+              }}
             >
               <TableHeader columns={columns2}>
                 {(column) => (
-                  <TableColumn className="w-1/3 text-center" key={column.key}>
+                  <TableColumn className="w-1/2 text-center" key={column.key}>
                     {column.label}
                   </TableColumn>
                 )}
@@ -346,7 +377,7 @@ function page({ params }) {
                 {(item) => (
                   <TableRow key={item.id}>
                     {(columnKey) => (
-                      <TableCell className="w-1/3 text-center">
+                      <TableCell className="w-1/2 text-center">
                         {columnKey === "권한" && item[columnKey] ? (
                           <span className="text-blue-500 font-bold">
                             {getKeyValue(item, columnKey)}
@@ -412,7 +443,6 @@ function page({ params }) {
                                 selectedKeys={value}
                                 className="max-w-xs"
                                 // onSelectionChange={setValue}
-                                
                               >
                                 {companyNames.map((animal) => (
                                   <SelectItem key={animal.label}>
@@ -445,7 +475,13 @@ function page({ params }) {
                           )}
                         </div>
                         <div className="flex gap-2 flex-col w-full gap-x-2 justify-center">
-                          <p>총 <span className="font-bold text-red-500">{projectsTotal.length}</span>개의 프로젝트가 검색되었습니다.</p>
+                          <p>
+                            총{" "}
+                            <span className="font-bold text-red-500">
+                              {projectsTotal.length}
+                            </span>
+                            개의 프로젝트가 검색되었습니다.
+                          </p>
                           {isLoading ? (
                             <Table
                               aria-label="Controlled table example with dynamic content"
@@ -474,14 +510,31 @@ function page({ params }) {
                                   <TableRow key={item.id}>
                                     <TableCell className="w-1/4 text-center">
                                       <Checkbox
-                                        isDisabled={item["권한"] === "있음"}
+                                        isDisabled={projects.includes(item)}
                                         onChange={(e) => {
                                           setSelectedKeys2((prevKeys) => {
                                             const newKeys = new Set(prevKeys);
                                             if (e.target.checked) {
                                               newKeys.add(item.id);
+                                              setCheckedProjectName(
+                                                (prevChecked) =>
+                                                  new Set(prevChecked).add(
+                                                    item.projectName
+                                                  )
+                                              );
                                             } else {
                                               newKeys.delete(item.id);
+                                              setCheckedProjectName(
+                                                (prevChecked) => {
+                                                  const newChecked = new Set(
+                                                    prevChecked
+                                                  );
+                                                  newChecked.delete(
+                                                    item.projectName
+                                                  );
+                                                  return newChecked;
+                                                }
+                                              );
                                             }
                                             return newKeys;
                                           });
@@ -495,13 +548,13 @@ function page({ params }) {
                                       {getKeyValue(item, "프로젝트명")}
                                     </TableCell>
                                     <TableCell className="w-1/4 text-center">
-                                      {item["권한"] === "있음" ? (
+                                      {projects.some(project => project.projectName === item.projectName) ? (
                                         <span className="text-blue-500 font-bold">
-                                          {getKeyValue(item, "권한")}
+                                          있음
                                         </span>
                                       ) : (
                                         <span className="text-red-500 font-bold">
-                                          {getKeyValue(item, "권한")}
+                                          없음
                                         </span>
                                       )}
                                     </TableCell>
@@ -577,7 +630,7 @@ function page({ params }) {
             {(onClose) => (
               <>
                 <ModalBody className="flex p-5">
-                  {prevModalType === "add" && <p>저장 되었습니다.</p>}
+                  {prevModalType === "add" && <p>등록이 완료되었습니다.</p>}
                   {prevModalType === "edit" && <p>수정이 완료되었습니다.</p>}
                   {prevModalType === "delete" && <p>삭제 되었습니다.</p>}
                 </ModalBody>

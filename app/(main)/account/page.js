@@ -114,11 +114,15 @@ export default function App() {
               `staffName.ilike.%${searchKeyword}%,customerId.ilike.%${searchKeyword}%,customerPhoneNo.ilike.%${searchKeyword}%`
             )
             .range(offset, offset + itemsPerPage - 1)
+            .order("created_at", { ascending: false })
+
         : await supabase
             .from("account")
             .select("*", { count: "exact" })
             .eq("companyName", selectedCompanyName)
             .range(offset, offset + itemsPerPage - 1)
+            .order("created_at", { ascending: false })
+
       : searchKeyword
       ? await supabase
           .from("account")
@@ -127,10 +131,14 @@ export default function App() {
             `companyName.ilike.%${searchKeyword}%,staffName.ilike.%${searchKeyword}%,customerId.ilike.%${searchKeyword}%,customerPhoneNo.ilike.%${searchKeyword}%`
           )
           .range(offset, offset + itemsPerPage - 1)
+          .order("created_at", { ascending: false })
+
       : await supabase
           .from("account")
           .select("*", { count: "exact" })
-          .range(offset, offset + itemsPerPage - 1);
+          .range(offset, offset + itemsPerPage - 1)
+          .order("created_at", { ascending: false })
+
 
     if (!error) {
       setTotalPages(Math.ceil(count / itemsPerPage));
@@ -233,6 +241,7 @@ export default function App() {
       console.log("Update successfully");
       getItems();
       getFilter1();
+      setSelectedKeys([]);
     }
   };
 
@@ -252,11 +261,14 @@ export default function App() {
         // Optionally, refresh the items list after deletion
         getItems();
         getFilter1();
+        setSelectedKeys([]);
       }
     } else {
       console.log("No items selected for deletion.");
     }
   };
+
+  console.log('items:',items)
 
   return (
     <>
@@ -273,6 +285,7 @@ export default function App() {
                     items={companyNames}
                     placeholder="고객사 선택하기"
                     className="w-full"
+                    defaultSelectedKeys={[-1]}
                   >
                     {(company) => (
                       <SelectItem
@@ -339,7 +352,10 @@ export default function App() {
               showControls
               total={totalPages}
               initialPage={1}
-              onChange={(page) => setCurrentPage(page)}
+              onChange={(page) => {
+                setCurrentPage(page);
+                setSelectedKeys([]);
+              }}
             />
           ) : (
             <Spinner></Spinner>
@@ -512,6 +528,7 @@ export default function App() {
                       onPress={() => {
                         changeSelectedItems();
                         setModalType("complete");
+                        
                       }}
                     >
                       수정하기

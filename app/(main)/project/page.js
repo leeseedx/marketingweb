@@ -87,7 +87,6 @@ export default function App() {
   const [prevModalType, setPrevModalType] = useState("");
 
   const supabase = createClient();
-  
 
   const getItems = async () => {
     const itemsPerPage = 20;
@@ -106,7 +105,9 @@ export default function App() {
             .or(
               `companyName.ilike.%${searchKeyword}%,projectName.ilike.%${searchKeyword}%`
             )
+            .order("created_at", { ascending: false })
             .range(offset, offset + itemsPerPage - 1)
+            
         : await supabase
             .from("project")
             .select("*", { count: "exact" })
@@ -114,6 +115,7 @@ export default function App() {
             .or(
               `companyName.ilike.%${searchKeyword}%,projectName.ilike.%${searchKeyword}%`
             )
+            .order("created_at", { ascending: false })
             .range(offset, offset + itemsPerPage - 1)
       : searchKeyword
       ? await supabase
@@ -122,11 +124,13 @@ export default function App() {
           .or(
             `companyName.ilike.%${searchKeyword}%,projectName.ilike.%${searchKeyword}%`
           )
+          .order("created_at", { ascending: false })
           .range(offset, offset + itemsPerPage - 1)
       : await supabase
           .from("project")
           .select("*", { count: "exact" })
-          .range(offset, offset + itemsPerPage - 1);
+          .range(offset, offset + itemsPerPage - 1)
+          .order("created_at", { ascending: false })
 
     if (!error) {
       setTotalPages(Math.ceil(count / itemsPerPage));
@@ -237,6 +241,7 @@ export default function App() {
         getItems();
         getFilter1();
         getFilter2();
+        setSelectedKeys([]);
       }
     } else {
       console.log("No items selected for deletion.");
@@ -260,6 +265,7 @@ export default function App() {
       getItems();
       getFilter1();
       getFilter2();
+      setSelectedKeys([]);
     }
   };
 
@@ -279,8 +285,11 @@ export default function App() {
       getFilter1();
       getFilter2();
       onOpen();
+      setSelectedKeys([]);
     }
   };
+
+  console.log('projectNames:', projectNames)
 
   return (
     <>
@@ -295,14 +304,16 @@ export default function App() {
                 <>
                   <Select
                     items={companyNames}
-                    placeholder="Select an animal"
+                    placeholder="회사 선택"
                     className="w-full"
+                    defaultSelectedKeys={[-1]}
                   >
                     {(company) => (
                       <SelectItem
                         onClick={() => {
                           setSelectedCompanyName(company.label);
                           setSelectedProjectName("전체");
+                          setCurrentPage(1);
                         }}
                       >
                         {company.label}
@@ -316,12 +327,16 @@ export default function App() {
               {projectNames.length > 0 ? (
                 <Select
                   items={projectNames}
-                  placeholder="Select an animal"
+                  placeholder="프로젝트 선택"
                   className="w-full"
+                  defaultSelectedKeys={[-1]}
                 >
                   {(project) => (
                     <SelectItem
-                      onClick={() => setSelectedProjectName(project.label)}
+                      onClick={() => {
+                        setSelectedProjectName(project.label);
+                        setCurrentPage(1)
+                      }}
                     >
                       {project.label}
                     </SelectItem>
@@ -380,7 +395,10 @@ export default function App() {
               showControls
               total={totalPages}
               initialPage={1}
-              onChange={(page) => setCurrentPage(page)}
+              onChange={(page) => {
+                setCurrentPage(page);
+                setSelectedKeys([]);
+              }}
             />
           ) : (
             <Spinner></Spinner>
@@ -509,7 +527,7 @@ export default function App() {
                       color="danger"
                       onPress={() => {
                         deleteSelectedItems();
-                        
+
                         setModalType("complete");
                       }}
                     >
@@ -523,7 +541,12 @@ export default function App() {
         </Modal>
       )}
       {modalType === "complete" && (
-        <Modal isOpen={isOpen} onOpenChange={onOpenChange} isDismissable={false} isKeyboardDismissDisabled={true}>
+        <Modal
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          isDismissable={false}
+          isKeyboardDismissDisabled={true}
+        >
           <ModalContent>
             {(onClose) => (
               <>
