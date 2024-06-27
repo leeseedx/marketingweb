@@ -13,13 +13,12 @@ export default function Component() {
 
   return (
 
-      <div className="flex h-[100vh] w-[100vw] items-center justify-center">
+      <div className=" flex h-[100vh] w-[100vw] items-center justify-center">
         <div className="flex w-full max-w-sm flex-col gap-4 rounded-large px-8 pb-10 pt-6">
           <p className="pb-4 text-3xl font-semibold text-center" >
-            로그인
-            <span aria-label="emoji" className="ml-2" role="img">
-              👋
-            </span>
+            <div className="flex justify-center">
+            <img src="/images/logo.png" alt="" width="200" />
+            </div>
           </p>
           <div
             className="flex flex-col gap-4"
@@ -45,19 +44,19 @@ export default function Component() {
               {/* <Checkbox defaultSelected name="remember" size="sm">
                 Remember me
               </Checkbox> */}
-              <Link className="text-default-500" href="#" size="sm">
+              {/* <Link className="text-default-500" href="#" size="sm">
                 비밀번호를 잃어버렸어요
-              </Link>
+              </Link> */}
             </div>
-            <Button className='font-bold' color="primary" type="submit">
+            <Button className='font-bold bg-[#b12928]' color="primary" type="submit">
               로그인
             </Button>
           </div>
-          <p className="text-center text-small font-bold">
+          {/* <p className="text-center text-small font-bold">
             <Link  href="/register" size="sm">
               가입하기
             </Link>
-          </p>
+          </p> */}
         </div>
       </div>
   );

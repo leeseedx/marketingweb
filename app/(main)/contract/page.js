@@ -143,20 +143,23 @@ export default function App() {
   const [changeProjectName, setChangeProjectName] = useState("");
   const [prevModalType, setPrevModalType] = useState("");
   const [files, setFiles] = useState([]);
-
   const [checkedInfos, setCheckedInfos] = useState({});
+  //필터값들
 
+  
+  
   const getInfos = () => {
     const lastSelectedKey = Array.from(selectedKeys).pop();
     const selectedItem = items.find(
       (item) => String(item.id) === String(lastSelectedKey)
     );
+    console.log("selectedItem:",selectedItem)
     const getAccountInfo = async () => {
       if (selectedItem) {
         const { data, error } = await supabase
-          .from("account")
+          .from("registerItems")
           .select("*")
-          .eq("customerId", selectedItem.ID);
+          .eq("id", selectedItem.id);
 
         if (error) {
           console.error("Error fetching account info:", error);
@@ -178,43 +181,47 @@ export default function App() {
     // const itemsPerPage = 20;
     const offset = (currentPage - 1) * selectUnits;
     let {
-      data: project,
+      data: registerItems,
       error,
       count,
     } = selectedCompanyName && selectedCompanyName !== "전체"
       ? selectedProjectName && selectedProjectName !== "전체"
         ? await supabase
-            .from("authProject")
-            .select("*, accountId(*)", { count: "exact" })
-            .eq("companyName", selectedCompanyName)
-            .eq("projectName", selectedProjectName)
+            .from("registerItems")
+            .select("*", { count: "exact" })
+            .eq("고객사명", selectedCompanyName)
+            .eq("프로젝트명", selectedProjectName)
+            .eq("분류", "승인")
             .or(
-              `companyName.ilike.%${searchKeyword}%,projectName.ilike.%${searchKeyword}%`
+              `고객사명.ilike.%${searchKeyword}%,프로젝트명.ilike.%${searchKeyword}%`
             )
-            .order("created_at", { ascending: false })
+            .order("생성일자", { ascending: false })
             .range(offset, offset + selectUnits - 1)
         : await supabase
-            .from("authProject")
-            .select("*, accountId(*)", { count: "exact" })
-            .eq("companyName", selectedCompanyName)
+            .from("registerItems")
+            .select("*", { count: "exact" })
+            .eq("고객사명", selectedCompanyName)
+            .eq("분류", "승인")
             .or(
-              `companyName.ilike.%${searchKeyword}%,projectName.ilike.%${searchKeyword}%`
+              `고객사명.ilike.%${searchKeyword}%,프로젝트명.ilike.%${searchKeyword}%`
             )
-            .order("created_at", { ascending: false })
+            .order("생성일자", { ascending: false })
             .range(offset, offset + selectUnits - 1)
       : searchKeyword
       ? await supabase
-          .from("authProject")
-          .select("*, accountId(*)", { count: "exact" })
+          .from("registerItems")
+          .select("*", { count: "exact" })
           .or(
-            `companyName.ilike.%${searchKeyword}%,projectName.ilike.%${searchKeyword}%`
+            `고객사명.ilike.%${searchKeyword}%,프로젝트명.ilike.%${searchKeyword}%`
           )
-          .order("created_at", { ascending: false })
+          .order("생성일자", { ascending: false })
+          .eq("분류", "승인")
           .range(offset, offset + selectUnits - 1)
       : await supabase
-          .from("authProject")
-          .select("*, accountId(*)", { count: "exact" })
-          .order("created_at", { ascending: false })
+          .from("registerItems")
+          .select("*", { count: "exact" })
+          .eq("분류", "승인")
+          .order("생성일자", { ascending: false })
           .range(offset, offset + selectUnits - 1);
 
     if (!error) {
@@ -223,21 +230,22 @@ export default function App() {
     if (error) {
       console.log(error);
     } else {
-      const formattedProject = project.map((item) => ({
-        ...item,
-        생성일자: item.created_at,
-        고객사명: item.companyName,
-        프로젝트명: item.projectName,
-        ID: item.accountId.customerId,
-        URL: item.accountId.customerUrl,
-        이름: item.accountId.staffName,
-        연락처: item.accountId.customerPhoneNo,
-        이메일: item.accountId.customerEmail,
-        은행: item.accountId.bankName,
-        예금주: item.accountId.bankAccountName,
-        계좌번호: item.accountId.bankAccountNo,
-        계약비용: item.accountId.contractCharge,
-      }));
+      // const formattedProject = project.map((item) => ({
+      //   ...item,
+      //   생성일자: item.created_at,
+      //   고객사명: item.companyName,
+      //   프로젝트명: item.projectName,
+      //   ID: item.accountId.customerId,
+      //   URL: item.accountId.customerUrl,
+      //   이름: item.accountId.staffName,
+      //   연락처: item.accountId.customerPhoneNo,
+      //   이메일: item.accountId.customerEmail,
+      //   은행: item.accountId.bankName,
+      //   예금주: item.accountId.bankAccountName,
+      //   계좌번호: item.accountId.bankAccountNo,
+      //   계약비용: item.accountId.contractCharge,
+      // }));
+      const formattedProject=registerItems
 
       const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -249,7 +257,7 @@ export default function App() {
 
       const formattedProjectWithDate = formattedProject.map((item) => ({
         ...item,
-        생성일자: formatDate(item.created_at),
+        생성일자: formatDate(item.생성일자),
       }));
       setItems(formattedProjectWithDate);
     }
@@ -401,16 +409,15 @@ export default function App() {
       }
     }
   };
-  console.log("selectedKeys", selectedKeys);
 
   const changeInfos = async () => {
     const lastSelectedKey = Number(Array.from(selectedKeys).pop());
     const selectedItem = items.find((item) => item.id === lastSelectedKey);
 
     const { data, error } = await supabase
-      .from("account")
+      .from("registerItems")
       .update(checkedInfos)
-      .eq("customerId", selectedItem.ID)
+      .eq("id", selectedItem.id)
       .select();
     if (error) {
       console.log(error);
@@ -445,6 +452,8 @@ export default function App() {
       console.log("No item selected.");
     }
   };
+
+  console.log('checkedInfos:',checkedInfos)
 
   return (
     <>
@@ -554,7 +563,7 @@ export default function App() {
             {(item) => (
               <TableRow key={item.id}>
                 {(columnKey) => (
-                  <TableCell className="w-1/7 text-center">
+                  <TableCell className="w-1/7 text-center text-nowrap">
                     {getKeyValue(item, columnKey)}
                   </TableCell>
                 )}
@@ -563,7 +572,7 @@ export default function App() {
           </TableBody>
         </Table>
         <div className="flex justify-center items-center my-5">
-          {totalPages ? (
+          {totalPages>=1 && (
             <Pagination
               isCompact
               showControls
@@ -571,15 +580,14 @@ export default function App() {
               initialPage={1}
               onChange={(page) => setCurrentPage(page)}
             />
-          ) : (
-            <Spinner></Spinner>
           )}
         </div>
         <div className="flex justify-end">
           <div className="flex gap-x-2">
             <Button
-              color="primary"
+              color="success"
               radius="md"
+              className=""
               onPress={() => {
                 if (selectedKeys.size === 0) {
                   setModalType("error");
@@ -594,7 +602,7 @@ export default function App() {
                 }
               }}
             >
-              자세히 보기
+              수정
             </Button>
           </div>
         </div>
@@ -618,11 +626,11 @@ export default function App() {
                           type="text"
                           label="이메일"
                           placeholder="이메일"
-                          value={checkedInfos.customerEmail}
+                          value={checkedInfos.이메일}
                           onChange={(e) =>
                             setCheckedInfos({
                               ...checkedInfos,
-                              customerEmail: e.target.value,
+                              이메일: e.target.value,
                             })
                           }
                         />
@@ -630,11 +638,11 @@ export default function App() {
                           type="text"
                           label="이름"
                           placeholder="이름"
-                          value={checkedInfos.staffName}
+                          value={checkedInfos.이름}
                           onChange={(e) =>
                             setCheckedInfos({
                               ...checkedInfos,
-                              staffName: e.target.value,
+                              이름: e.target.value,
                             })
                           }
                         />
@@ -642,11 +650,11 @@ export default function App() {
                           type="text"
                           label="연락처"
                           placeholder="연락처"
-                          value={checkedInfos.customerPhoneNo}
+                          value={checkedInfos.연락처}
                           onChange={(e) =>
                             setCheckedInfos({
                               ...checkedInfos,
-                              customerPhoneNo: e.target.value,
+                              연락처: e.target.value,
                             })
                           }
                         />
@@ -657,11 +665,11 @@ export default function App() {
                             type="text"
                             label="우편번호"
                             placeholder="우편번호"
-                            value={checkedInfos.postZipCode}
+                            value={checkedInfos.우편번호}
                             onChange={(e) =>
                               setCheckedInfos({
                                 ...checkedInfos,
-                                postZipCode: e.target.value,
+                                우편번호: e.target.value,
                               })
                             }
                           />
@@ -671,11 +679,11 @@ export default function App() {
                             type="text"
                             label="주소"
                             placeholder="주소"
-                            value={checkedInfos.address}
+                            value={checkedInfos.주소}
                             onChange={(e) =>
                               setCheckedInfos({
                                 ...checkedInfos,
-                                address: e.target.value,
+                                주소: e.target.value,
                               })
                             }
                           />
@@ -686,11 +694,11 @@ export default function App() {
                           type="text"
                           label="배송메모"
                           placeholder="배송메모"
-                          value={checkedInfos.deliveryMemo}
+                          value={checkedInfos.배송메모}
                           onChange={(e) =>
                             setCheckedInfos({
                               ...checkedInfos,
-                              deliveryMemo: e.target.value,
+                              배송메모: e.target.value,
                             })
                           }
                         />
@@ -698,11 +706,11 @@ export default function App() {
                           type="text"
                           label="택배사"
                           placeholder="택배사"
-                          value={checkedInfos.deliveryCompany}
+                          value={checkedInfos.택배사}
                           onChange={(e) =>
                             setCheckedInfos({
                               ...checkedInfos,
-                              deliveryCompany: e.target.value,
+                              택배사: e.target.value,
                             })
                           }
                         />
@@ -710,11 +718,11 @@ export default function App() {
                           type="text"
                           label="송장번호"
                           placeholder="송장번호"
-                          value={checkedInfos.deliveryCode}
+                          value={checkedInfos.송장번호}
                           onChange={(e) =>
                             setCheckedInfos({
                               ...checkedInfos,
-                              deliveryCode: e.target.value,
+                              송장번호: e.target.value,
                             })
                           }
                         />
@@ -724,11 +732,11 @@ export default function App() {
                           type="text"
                           label="사업자등록번호"
                           placeholder="사업자등록번호"
-                          value={checkedInfos.businessNo}
+                          value={checkedInfos.사업자등록번호}
                           onChange={(e) =>
                             setCheckedInfos({
                               ...checkedInfos,
-                              businessNo: e.target.value,
+                              사업자등록번호: e.target.value,
                             })
                           }
                         />
@@ -741,11 +749,11 @@ export default function App() {
                             type="text"
                             label="은행"
                             placeholder="은행"
-                            value={checkedInfos.bankName}
+                            value={checkedInfos.은행}
                             onChange={(e) =>
                               setCheckedInfos({
                                 ...checkedInfos,
-                                bankName: e.target.value,
+                                은행: e.target.value,
                               })
                             }
                           />
@@ -754,11 +762,11 @@ export default function App() {
                             type="text"
                             label="예금주"
                             placeholder="예금주"
-                            value={checkedInfos.bankAccountName}
+                            value={checkedInfos.예금주}
                             onChange={(e) =>
                               setCheckedInfos({
                                 ...checkedInfos,
-                                bankAccountName: e.target.value,
+                                예금주: e.target.value,
                               })
                             }
                           />
@@ -767,11 +775,11 @@ export default function App() {
                             type="text"
                             label="계좌번호"
                             placeholder="계좌번호"
-                            value={checkedInfos.bankAccountNo}
+                            value={checkedInfos.계좌번호}
                             onChange={(e) =>
                               setCheckedInfos({
                                 ...checkedInfos,
-                                bankAccountNo: e.target.value,
+                                계좌번호: e.target.value,
                               })
                             }
                           />
@@ -780,11 +788,11 @@ export default function App() {
                             type="text"
                             label="계약비용"
                             placeholder="계약비용"
-                            value={checkedInfos.contractCharge}
+                            value={checkedInfos.계약비용}
                             onChange={(e) =>
                               setCheckedInfos({
                                 ...checkedInfos,
-                                contractCharge: e.target.value,
+                                계약비용: e.target.value,
                               })
                             }
                           />
@@ -911,6 +919,7 @@ export default function App() {
                           addSelectedItems();
                           setModalType("complete");
                           changeInfos();
+                          getInfos()
                         }}
                       >
                         수정하기
@@ -977,7 +986,6 @@ export default function App() {
                       color="danger"
                       onPress={() => {
                         deleteSelectedItems();
-
                         setModalType("complete");
                       }}
                     >

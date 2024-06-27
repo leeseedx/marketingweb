@@ -510,7 +510,7 @@ function page({ params }) {
                                   <TableRow key={item.id}>
                                     <TableCell className="w-1/4 text-center">
                                       <Checkbox
-                                        isDisabled={projects.includes(item)}
+                                        isDisabled={projects.some(project => project.projectName === item.projectName)}
                                         onChange={(e) => {
                                           setSelectedKeys2((prevKeys) => {
                                             const newKeys = new Set(prevKeys);

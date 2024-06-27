@@ -26,7 +26,21 @@ import {
 } from "@nextui-org/react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import {useRouter} from 'next/navigation'
+import { useRouter } from "next/navigation";
+
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
+
 const rows = [
   {
     key: "1",
@@ -79,10 +93,21 @@ const columns = [
 
 export default function App() {
   const [selectedKeys, setSelectedKeys] = React.useState(new Set([]));
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const {
+    isOpen: isOpen1,
+    onOpen: onOpen1,
+    onOpenChange: onOpenChange1,
+  } = useDisclosure();
+  const {
+    isOpen: isOpen2,
+    onOpen: onOpen2,
+    onOpenChange: onOpenChange2,
+  } = useDisclosure();
+
   const [filterLoading1, setFilterLoading1] = useState(false);
   const [companyNames, setCompanyNames] = useState([]);
   const [selectedCompanyName, setSelectedCompanyName] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [modalType, setModalType] = useState("");
   const [prevModalType, setPrevModalType] = useState("");
@@ -94,6 +119,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState("");
   const [items, setItems] = useState([]);
+  const [errorText, setErrorText] = useState("");
 
   const supabase = createClient();
   const router = useRouter();
@@ -115,14 +141,12 @@ export default function App() {
             )
             .range(offset, offset + itemsPerPage - 1)
             .order("created_at", { ascending: false })
-
         : await supabase
             .from("account")
             .select("*", { count: "exact" })
             .eq("companyName", selectedCompanyName)
             .range(offset, offset + itemsPerPage - 1)
             .order("created_at", { ascending: false })
-
       : searchKeyword
       ? await supabase
           .from("account")
@@ -132,13 +156,11 @@ export default function App() {
           )
           .range(offset, offset + itemsPerPage - 1)
           .order("created_at", { ascending: false })
-
       : await supabase
           .from("account")
           .select("*", { count: "exact" })
           .range(offset, offset + itemsPerPage - 1)
-          .order("created_at", { ascending: false })
-
+          .order("created_at", { ascending: false });
 
     if (!error) {
       setTotalPages(Math.ceil(count / itemsPerPage));
@@ -184,6 +206,20 @@ export default function App() {
   }, [selectedCompanyName, currentPage]);
 
   useEffect(() => {
+    if (selectedKeys && items.length > 0) {
+      const lastSelectedKey = Array.from(selectedKeys).pop();
+      const selectedItem = items.find(
+        (item) => String(item.id) === String(lastSelectedKey)
+      );
+      if (selectedItem) {
+        setSelectedItem(selectedItem);
+      }
+    }
+  }, [selectedKeys]);
+
+  console.log("selectedItem:", selectedItem);
+
+  useEffect(() => {
     if (selectedKeys) {
       const lastSelectedKey = Array.from(selectedKeys).map(Number).pop();
       const selectedItem = items.find((item) => item.id === lastSelectedKey);
@@ -199,6 +235,13 @@ export default function App() {
   }, [selectedKeys]);
 
   const addSelectedItems = async () => {
+    const { data: dataSignup, error: errorSignup } = await supabase.auth.signUp(
+      {
+        email: changeCustomerId,
+        password: changeCustomerPw,
+      }
+    );
+
     const { data, error } = await supabase
       .from("account")
       .insert([
@@ -206,8 +249,8 @@ export default function App() {
           companyName: changeCompanyName,
           staffName: changeStaffName,
           customerId: changeCustomerId,
-          customerPw: changeCustomerPw,
           customerPhoneNo: changeCustomerPhoneNo,
+          userId: dataSignup.user.id,
         },
       ])
       .select();
@@ -218,19 +261,28 @@ export default function App() {
       console.log("Add successfully");
       getItems();
       getFilter1();
-      onOpen();
+      onOpen1();
     }
   };
 
   const changeSelectedItems = async () => {
     const lastSelectedKey = Array.from(selectedKeys).map(Number).pop();
+    const user = "";
+    if (changeCustomerPw) {
+      const { data: user, error } =
+        await supabaseAdmin.auth.admin.updateUserById(selectedItem.userId, {
+          password: changeCustomerPw,
+        });
+      console.log("userChange:", user);
+      setChangeCustomerPw("");
+    }
+
     const { data, error } = await supabase
       .from("account")
       .update({
         companyName: changeCompanyName,
         staffName: changeStaffName,
         customerId: changeCustomerId,
-        customerPw: changeCustomerPw,
         customerPhoneNo: changeCustomerPhoneNo,
       })
       .eq("id", lastSelectedKey)
@@ -245,9 +297,25 @@ export default function App() {
     }
   };
 
+  const handleTest = async () => {
+    const {
+      data: { users },
+      error,
+    } = await supabaseAdmin.auth.admin.listUsers();
+    console.log("users:", users, error);
+  };
+
   const deleteSelectedItems = async () => {
+    const { data, error } = await supabaseAdmin.auth.admin.deleteUser(
+      selectedItem.userId
+    );
+
     if (selectedKeys && selectedKeys.size > 0) {
       const idsToDelete = Array.from(selectedKeys).map(Number);
+      const { error: error2 } = await supabase
+        .from("authProject")
+        .delete()
+        .in("accountId", idsToDelete);
 
       const { error } = await supabase
         .from("account")
@@ -268,7 +336,7 @@ export default function App() {
     }
   };
 
-  console.log('items:',items)
+  console.log("items:", items);
 
   return (
     <>
@@ -363,23 +431,38 @@ export default function App() {
         </div>
         <div className="flex justify-end">
           <div className="flex gap-x-2">
+            {/* <Button
+              color="danger"
+              radius="md"
+              onPress={() => {
+                handleTest()
+              }}
+            >
+              TEST
+            </Button> */}
             <Button
               color="danger"
               radius="md"
               onPress={() => {
                 setModalType("delete");
                 setPrevModalType("delete");
-                onOpen();
+                onOpen1();
               }}
             >
               삭제
             </Button>
-            <Button color="default" onClick={()=>{
-              const lastSelectedKey = Array.from(selectedKeys).map(String).pop();
-              if (lastSelectedKey) {
-                router.push(`/account/${lastSelectedKey}`);
-              }
-            }}>
+
+            <Button
+              color="default"
+              onClick={() => {
+                const lastSelectedKey = Array.from(selectedKeys)
+                  .map(String)
+                  .pop();
+                if (lastSelectedKey) {
+                  router.push(`/account/${lastSelectedKey}`);
+                }
+              }}
+            >
               권한설정
             </Button>
             <Button
@@ -388,7 +471,7 @@ export default function App() {
               onPress={() => {
                 setModalType("edit");
                 setPrevModalType("edit");
-                onOpen();
+                onOpen1();
               }}
             >
               수정
@@ -399,7 +482,7 @@ export default function App() {
               onPress={() => {
                 setModalType("add");
                 setPrevModalType("add");
-                onOpen();
+                onOpen1();
               }}
             >
               추가
@@ -408,9 +491,9 @@ export default function App() {
         </div>
       </div>
       {modalType !== "complete" && (
-        <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+        <Modal isOpen={isOpen1} onOpenChange={onOpenChange1}>
           <ModalContent>
-            {(onClose) => (
+            {(onClose1) => (
               <>
                 <ModalHeader className="flex flex-col gap-1">
                   {modalType === "add" && "고객사 계정 추가"}
@@ -436,7 +519,7 @@ export default function App() {
                       />
                       <Input
                         type="text"
-                        label="고객사ID"
+                        label="고객사ID(이메일형태로 입력해주세요)"
                         placeholder="고객사ID"
                         value={changeCustomerId}
                         onChange={(e) => setChangeCustomerId(e.target.value)}
@@ -461,6 +544,7 @@ export default function App() {
                   )}
                   {modalType === "edit" && (
                     <>
+                      <h2 className="font-bold">기본정보</h2>
                       <Input
                         type="text"
                         label="고객사명"
@@ -475,20 +559,7 @@ export default function App() {
                         value={changeStaffName}
                         onChange={(e) => setChangeStaffName(e.target.value)}
                       />
-                      <Input
-                        type="text"
-                        label="고객사ID"
-                        placeholder="고객사ID"
-                        value={changeCustomerId}
-                        onChange={(e) => setChangeCustomerId(e.target.value)}
-                      />
-                      <Input
-                        type="text"
-                        label="고객사PW"
-                        placeholder="고객사PW"
-                        value={changeCustomerPw}
-                        onChange={(e) => setChangeCustomerPw(e.target.value)}
-                      />
+
                       <Input
                         type="text"
                         label="연락처"
@@ -497,6 +568,22 @@ export default function App() {
                         onChange={(e) =>
                           setChangeCustomerPhoneNo(e.target.value)
                         }
+                      />
+                      <h2 className="font-bold">로그인 정보</h2>
+                      <Input
+                        type="email"
+                        label="고객사ID"
+                        placeholder="고객사ID"
+                        value={changeCustomerId}
+                        onChange={(e) => setChangeCustomerId(e.target.value)}
+                        disabled
+                      />
+                      <Input
+                        type="email"
+                        label="고객사PW"
+                        placeholder="고객사PW"
+                        value={changeCustomerPw}
+                        onChange={(e) => setChangeCustomerPw(e.target.value)}
                       />
                     </>
                   )}
@@ -508,15 +595,21 @@ export default function App() {
                   )}
                 </ModalBody>
                 <ModalFooter>
-                  <Button color="" variant="light" onPress={onClose}>
+                  <Button color="" variant="light" onPress={onClose1}>
                     닫기
                   </Button>
                   {modalType === "add" && (
                     <Button
-                      color="primary"
+                      className="bg-[#b12928] text-white"
                       onPress={() => {
-                        addSelectedItems();
-                        setModalType("complete");
+                        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!emailPattern.test(changeCustomerId)) {
+                          onOpen2();
+                          setErrorText("아이디를 이메일형태로 입력해주세요");
+                        } else {
+                          addSelectedItems();
+                          setModalType("complete");
+                        }
                       }}
                     >
                       추가하기
@@ -528,7 +621,6 @@ export default function App() {
                       onPress={() => {
                         changeSelectedItems();
                         setModalType("complete");
-                        
                       }}
                     >
                       수정하기
@@ -554,13 +646,13 @@ export default function App() {
       )}
       {modalType === "complete" && (
         <Modal
-          isOpen={isOpen}
-          onOpenChange={onOpenChange}
+          isOpen={isOpen1}
+          onOpenChange={onOpenChange1}
           isDismissable={false}
           isKeyboardDismissDisabled={true}
         >
           <ModalContent>
-            {(onClose) => (
+            {(onClose1) => (
               <>
                 <ModalBody className="flex p-5">
                   {prevModalType === "add" && <p>저장 되었습니다.</p>}
@@ -568,7 +660,10 @@ export default function App() {
                   {prevModalType === "delete" && <p>삭제 되었습니다.</p>}
                 </ModalBody>
                 <ModalFooter>
-                  <Button color="primary" onPress={onClose}>
+                  <Button
+                    className="bg-[#b12928] text-white"
+                    onPress={onClose1}
+                  >
                     확인
                   </Button>
                 </ModalFooter>
@@ -577,6 +672,25 @@ export default function App() {
           </ModalContent>
         </Modal>
       )}
+      <Modal
+        isOpen={isOpen2}
+        onOpenChange={onOpenChange2}
+        isDismissable={false}
+        isKeyboardDismissDisabled={true}
+      >
+        <ModalContent>
+          {(onClose2) => (
+            <>
+              <ModalBody className="flex p-5">{errorText}</ModalBody>
+              <ModalFooter>
+                <Button className="bg-[#b12928] text-white" onPress={onClose2}>
+                  확인
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </>
   );
 }

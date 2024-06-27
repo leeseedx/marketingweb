@@ -79,7 +79,7 @@ export default function App() {
   const [filterLoading2, setFilterLoading2] = useState(false);
   const [items, setItems] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState("");
+  const [totalPages, setTotalPages] = useState(1);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [modalType, setModalType] = useState("");
   const [changeCompanyName, setChangeCompanyName] = useState("");
@@ -289,7 +289,6 @@ export default function App() {
     }
   };
 
-  console.log('projectNames:', projectNames)
 
   return (
     <>
@@ -389,7 +388,7 @@ export default function App() {
           </TableBody>
         </Table>
         <div className="flex justify-center items-center my-5">
-          {totalPages ? (
+          
             <Pagination
               isCompact
               showControls
@@ -400,9 +399,6 @@ export default function App() {
                 setSelectedKeys([]);
               }}
             />
-          ) : (
-            <Spinner></Spinner>
-          )}
         </div>
         <div className="flex justify-end">
           <div className="flex gap-x-2">
@@ -502,13 +498,13 @@ export default function App() {
                   </Button>
                   {modalType === "add" && (
                     <Button
-                      color="primary"
+                      className="bg-[#b12928] text-white "
                       onPress={() => {
                         addSelectedItems();
                         setModalType("complete");
                       }}
                     >
-                      추가하기
+                      추가
                     </Button>
                   )}
                   {modalType === "edit" && (
