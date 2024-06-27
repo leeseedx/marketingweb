@@ -906,6 +906,7 @@ export default function App() {
         const { data: existingItems, error: existingItemsError } =
           await supabase.from("registerItems").select("*").in("ID", idList);
 
+          
         const header_list = [
           "Name",
           "URL",
