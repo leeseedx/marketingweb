@@ -29,19 +29,19 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-const supabaseURL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || '';
+// const supabaseURL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+// const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || '';
 
-const supabaseAdmin = createSupabaseClient(
-  supabaseURL,
-  supabaseKey,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
+// const supabaseAdmin = createSupabaseClient(
+//   supabaseURL,
+//   supabaseKey,
+//   {
+//     auth: {
+//       autoRefreshToken: false,
+//       persistSession: false,
+//     },
+//   }
+// );
 
 const rows = [
   {
