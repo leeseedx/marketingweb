@@ -1354,7 +1354,7 @@ export default function App() {
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                             <Select
-                              label="분류를 지정하세요"
+                              label="분류"
                               className="col-span-1 max-w-xs"
                               defaultSelectedKeys={[checkedInfos.분류]}
                             >
