@@ -60,9 +60,9 @@ export default function App() {
     if (error) {
       console.log("error:", error);
     }
-  if (!error) {
-    window.location.href = "/login";
-  }
+    if (!error) {
+      window.location.href = "/login";
+    }
   };
 
   console.log("user111:", user);
@@ -100,7 +100,7 @@ export default function App() {
             인플루언서 리스트
           </Link>
         </NavbarItem>
-        
+
         <NavbarItem>
           <Link
             href="/project"
@@ -136,25 +136,23 @@ export default function App() {
       </NavbarContent>
       <NavbarContent justify="end">
         <NavbarItem className="hidden lg:flex">
-          {isLoading ? null : (
-            user ? (
-              <div className="flex justify-center items-center gap-2">
+          {isLoading ? null : user ? (
+            <div className="flex justify-center items-center gap-2">
               <div className="font-medium">{user.email}</div>
               <Button
                 as={Link}
                 color="primary"
                 href="/login"
                 className="font-bold"
-                onClick={()=>{
-                  handleSignOut()
+                onClick={() => {
+                  handleSignOut();
                 }}
               >
                 로그아웃
               </Button>
-              </div>
-            ) : (
-              <></>
-            )
+            </div>
+          ) : (
+            <></>
           )}
         </NavbarItem>
         {/* <NavbarItem>
@@ -166,16 +164,24 @@ export default function App() {
       <NavbarMenu>
         {menuItems.map((item, index) => (
           <NavbarMenuItem key={`${item}-${index}`}>
-            <Link
-              
-              className="w-full text-black"
-              href={item.href}
-              size="lg"
-            >
+            <Link className="w-full text-black" href={item.href} size="lg">
               {item.label}
             </Link>
           </NavbarMenuItem>
         ))}
+        <NavbarMenuItem>
+          <Button
+            as={Link}
+            className="bg-[#b12928] text-white"
+            href="/login"
+            variant="flat"
+            onClick={() => {
+              handleSignOut();
+            }}
+          >
+            로그아웃
+          </Button>
+        </NavbarMenuItem>
       </NavbarMenu>
     </Navbar>
   );
