@@ -122,8 +122,29 @@ function page({ params }) {
   );
   const [candidates, setCandidates] = useState([]);
   const [value, setValue] = useState([]);
+  const [targetUser, setTargetUser] = useState(null);
+
+
+  console.log('selectedProjectName:',selectedProjectName)
 
   const supabase = createClient();
+  
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: user, error } = await supabase
+        .from("account")
+        .select("customerId")
+        .eq("id", params.accountNo)
+        .single();
+
+      if (error) {
+        console.error("Error fetching user:", error);
+      } else {
+        setTargetUser(user.customerId);
+      }
+    };
+    checkUser();
+  }, []);
 
   const getFilter1 = async () => {
     let { data: project, error } = await supabase.from("project").select("*");
@@ -192,25 +213,25 @@ function page({ params }) {
       }));
       setItems(formattedAccount);
     }
-    let {
-      data: project,
-      error2,
-      count2,
-    } = await supabase
+    let projectQuery = supabase
       .from("project")
       .select("*", { count: "exact" })
       .eq("companyName", account[0].companyName);
-    
-      let {
-        data: authProject,
-        error3,
-        count3,
-      } = await supabase
-        .from("authProject")
-        .select("*", { count: "exact" })
-        .eq("accountId", accountNo);
-    
-    
+
+    if (selectedProjectName && selectedProjectName !== "전체") {
+      projectQuery = projectQuery.eq("projectName", selectedProjectName);
+    }
+
+    let { data: project, error2, count2 } = await projectQuery;
+
+    let {
+      data: authProject,
+      error3,
+      count3,
+    } = await supabase
+      .from("authProject")
+      .select("*", { count: "exact" })
+      .eq("accountId", accountNo);
 
     if (error2) {
       console.log(error2);
@@ -287,10 +308,13 @@ function page({ params }) {
           companyName: selectedCompanyName,
           projectName: projectName,
           accountId: Number(accountNo),
+          email: targetUser,
         })
       );
 
-      const { error } = await supabase.from("authProject").insert(formattedCheckedProjectName);
+      const { error } = await supabase
+        .from("authProject")
+        .insert(formattedCheckedProjectName);
 
       if (error) {
         console.log("Error updating item with id:", error);
@@ -442,6 +466,7 @@ function page({ params }) {
                                 placeholder="회사"
                                 selectedKeys={value}
                                 className="max-w-xs"
+                                isDisabled
                                 // onSelectionChange={setValue}
                               >
                                 {companyNames.map((animal) => (
@@ -459,11 +484,14 @@ function page({ params }) {
                               items={projectNames}
                               placeholder="프로젝트"
                               className="w-full"
+                              defaultSelectedKeys={['-1']}
                             >
                               {(project) => (
                                 <SelectItem
-                                  onClick={() =>
+                                  key={project.key}
+                                  onClick={() =>{
                                     setSelectedProjectName(project.label)
+                                  }
                                   }
                                 >
                                   {project.label}
@@ -510,7 +538,11 @@ function page({ params }) {
                                   <TableRow key={item.id}>
                                     <TableCell className="w-1/4 text-center">
                                       <Checkbox
-                                        isDisabled={projects.some(project => project.projectName === item.projectName)}
+                                        isDisabled={projects.some(
+                                          (project) =>
+                                            project.projectName ===
+                                            item.projectName
+                                        )}
                                         onChange={(e) => {
                                           setSelectedKeys2((prevKeys) => {
                                             const newKeys = new Set(prevKeys);
@@ -548,7 +580,11 @@ function page({ params }) {
                                       {getKeyValue(item, "프로젝트명")}
                                     </TableCell>
                                     <TableCell className="w-1/4 text-center">
-                                      {projects.some(project => project.projectName === item.projectName) ? (
+                                      {projects.some(
+                                        (project) =>
+                                          project.projectName ===
+                                          item.projectName
+                                      ) ? (
                                         <span className="text-blue-500 font-bold">
                                           있음
                                         </span>
@@ -581,7 +617,7 @@ function page({ params }) {
                   </Button>
                   {modalType === "add" && (
                     <Button
-                      color="primary"
+                      className="bg-[#b12928] text-white"
                       onPress={() => {
                         addSelectedItems();
                         setModalType("complete");

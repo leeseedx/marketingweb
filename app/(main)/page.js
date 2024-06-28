@@ -309,6 +309,21 @@ const columns = [
   },
 ];
 
+const typeList = [
+  {
+    key: "insta-influencer",
+    label: "insta-influencer",
+  },
+  {
+    key: "N-bloger",
+    label: "N-bloger",
+  },
+  {
+    key: "N-influencer",
+    label: "N-influencer",
+  },
+];
+
 export default function App() {
   const [selectedKeys, setSelectedKeys] = useState(new Set());
   const {
@@ -351,11 +366,11 @@ export default function App() {
     onOpen: onOpen8,
     onOpenChange: onOpenChange8,
   } = useDisclosure(); // 제외하고 등록
-    const {
+  const {
     isOpen: isOpen9,
     onOpen: onOpen9,
     onOpenChange: onOpenChange9,
-  } = useDisclosure(); // 관리자만 접속 페이지 
+  } = useDisclosure(); // 관리자만 접속 페이지
   const [companyNames, setCompanyNames] = useState([]);
   const [projectNames, setProjectNames] = useState([]);
   const [selectedCompanyName, setSelectedCompanyName] = useState("");
@@ -379,6 +394,7 @@ export default function App() {
   const [excelFile, setExcelFile] = useState(null);
   const [errorRowList, setErrorRowList] = useState([]);
   const [user, setUser] = useState(null);
+  const [isMaster, setIsMaster] = useState(true);
   // const [resumeFlag, setResumeFlag] = useState(false);
 
   // 필터값들
@@ -386,15 +402,15 @@ export default function App() {
   const [filterVariation, setFilterVariation] = useState("전체");
   const [filterType, setFilterType] = useState("전체");
   const [sorting, setSorting] = useState("등록순");
+  const [filterSearch, setFilterSearch] = useState("제품명");
   const supabase = createClient();
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('error')) {
+    if (urlParams.has("error")) {
       onOpen9();
     }
   }, []);
-
 
   useEffect(() => {
     const checkUser = async () => {
@@ -407,20 +423,20 @@ export default function App() {
       }
       setUser(user);
       if (user.id !== "cb1d1d38-ca7b-429a-8db5-770cd9085644") {
+        setIsMaster(false)
         let { data: account, error } = await supabase
           .from("account")
           .select("*") // Filters
           .eq("customerId", user?.email)
-          .single()
-          console.log("account:", account);
-          setSelectedCompanyName(account?.companyName)
+          .single();
+        setSelectedCompanyName(account?.companyName);
       }
-      
     };
     checkUser();
   }, []);
 
-  console.log('selectedCompanyName:',selectedCompanyName)
+  console.log("selectedCompanyName:", selectedCompanyName);
+  console.log("selectedProjectName:", selectedProjectName);
   const getItems = async () => {
     const itemsPerPage = units;
     const offset = (currentPage - 1) * units;
@@ -443,9 +459,25 @@ export default function App() {
     }
 
     if (searchKeyword) {
-      query = query.or(
-        `고객사명.ilike.%${searchKeyword}%,프로젝트명.ilike.%${searchKeyword}%`
-      );
+      let columnName = "";
+      if (filterSearch === "제품명") {
+        columnName = "Product";
+      } else if (filterSearch === "키워드") {
+        columnName = "Keyword of Context";
+      } else if (filterSearch === "이름") {
+        columnName = "Name";
+      } else if (filterSearch === "이메일") {
+        columnName = "이메일";
+      } else if (filterSearch === "연락처") {
+        columnName = "연락처";
+      } else if (filterSearch === "주소") {
+        columnName = "주소";
+      } else if (filterSearch === "송장번호") {
+        columnName = "송장번호";
+      }
+
+      query = query.or(`${columnName}.ilike.%${searchKeyword}%`);
+      console.log("query:", query);
     } else {
       query = query;
     }
@@ -454,15 +486,11 @@ export default function App() {
     if (sorting && sorting === "등록순") {
       query = query.order("생성일자", { ascending: false });
     } else if (sorting && sorting === "방문자순") {
-      // query = query.order("Visitor or Follower", { ascending: false, nullsLast: true, foreignTable: null, cast: 'int' })
-      query = query.order(
-        "CAST(NULLIF(regexp_replace(\"방문자순\", '\\D', '', 'g'), '') AS INTEGER)",
-        { ascending: false, nullsLast: true }
-      );
+      query = query.order("Visitor or Follower", { ascending: false });
     } else if (sorting && sorting === "좋아요순") {
       query = query.order("like", { ascending: false });
     } else if (sorting && sorting === "댓글순") {
-      query = query.order("comment", { ascending: false });
+      query = query.order("Comment", { ascending: false });
     } else if (sorting && sorting === "타겟") {
       query = query.order("Target", { ascending: false });
     } else if (sorting && sorting === "제품명(오름차순)") {
@@ -488,17 +516,17 @@ export default function App() {
       setItems(registerItems);
     }
   };
-
+  console.log("companyNames:",companyNames)
   const getFilter1 = async () => {
     let { data: project, error } = await supabase.from("project").select("*");
     if (error) {
       console.log(error);
     } else {
       const companyNames = [
-        { key: -1, label: "전체" },
+        { key: "전체", label: "전체" },
         ...project.reduce((acc, item, index) => {
           if (!acc.some(({ label }) => label === item.companyName)) {
-            acc.push({ key: index, label: item.companyName });
+            acc.push({ key: item.companyName, label: item.companyName });
           }
           return acc;
         }, []),
@@ -854,7 +882,7 @@ export default function App() {
           "Contents URL": row[17],
           Views: row[18],
           like: isNaN(Number(row[19])) ? 0 : Number(row[19]),
-          Comment: row[20],
+          Comment: isNaN(Number(row[20])) ? 0 : Number(row[20]),
           비고: row[21],
           "URL with Parameter": row[22],
           "URL Shorten": row[23],
@@ -1034,6 +1062,7 @@ export default function App() {
               setErrorText("등록이 완료되었습니다.");
               onOpen3();
               setErrorRowList([]);
+              setUploadComplete(true);
             }
           }
         }
@@ -1066,9 +1095,21 @@ export default function App() {
     setSorting(selectedSorting);
   };
 
+  const handleChangeSearchFilter = (selectedKeys) => {
+    console.log(selectedKeys);
+    const selectedSearchFilter = selectedKeys.target.value;
+    setFilterSearch(selectedSearchFilter);
+  };
+
+  const handleChangeSearchKeyword = (selectedKeys) => {
+    console.log(selectedKeys);
+    const selectedSearchKeyword = selectedKeys.target.value;
+    setSearchKeyword(selectedSearchKeyword);
+  };
+
   return (
     <>
-      {user&&filterLoading1 ? (
+      {user && filterLoading1 ? (
         <>
           <div className="md:px-[20vw] px-[5vw] py-[5vh] ">
             <div className="mb-5">
@@ -1082,10 +1123,13 @@ export default function App() {
                       items={companyNames}
                       placeholder="회사 선택"
                       className="col-span-1"
-                      defaultSelectedKeys={[-1]}
+                      defaultSelectedKeys={selectedCompanyName && selectedCompanyName !== '전체' ? [selectedCompanyName] : ['전체']}
+                      selectedKeys={!isMaster && selectedCompanyName ? [selectedCompanyName] : undefined}
+                      isDisabled={!isMaster}
                     >
                       {(company) => (
                         <SelectItem
+                          key={company.key}
                           onClick={() => {
                             setSelectedCompanyName(company.label);
                             setSelectedProjectName("전체");
@@ -1137,9 +1181,7 @@ export default function App() {
                   onChange={handleChangeUnits}
                 >
                   {(unit) => (
-                    <SelectItem key={unit.key}>
-                      {unit.label}
-                    </SelectItem>
+                    <SelectItem key={unit.key}>{unit.label}</SelectItem>
                   )}
                 </Select>
               </div>
@@ -1190,9 +1232,10 @@ export default function App() {
                   placeholder="검색 필터를 선택하세요"
                   className="col-span-1 h-auto"
                   defaultSelectedKeys={["제품명"]}
+                  onChange={handleChangeSearchFilter}
                 >
                   {(searchFilter) => (
-                    <SelectItem key={searchFilter.key} >
+                    <SelectItem key={searchFilter.key}>
                       {searchFilter.label}
                     </SelectItem>
                   )}
@@ -1202,8 +1245,13 @@ export default function App() {
                   type="text"
                   placeholder="검색어를 입력하세요"
                   className="col-span-1 md:col-span-2 h-auto"
+                  onChange={handleChangeSearchKeyword}
                 />
-                <Button color="primary" className="col-span-1 h-[56px]">
+                <Button
+                  color="primary"
+                  className="col-span-1 h-[56px]"
+                  onClick={getItems}
+                >
                   검색
                 </Button>
               </div>
@@ -1498,7 +1546,7 @@ export default function App() {
                             </h3>
                           </div>
                           <div className="grid grid-cols-3 gap-2">
-                            <Input
+                            {/* <Input
                               className="col-span-1"
                               type="text"
                               label="Type"
@@ -1510,7 +1558,26 @@ export default function App() {
                                   Type: e.target.value,
                                 })
                               }
-                            />
+                            /> */}
+                            <Select
+                              items={typeList}
+                              label="Type"
+                              className="col-span-1 max-w-xs"
+                              defaultSelectedKeys={[checkedInfos.Type]}
+                            >
+                              {(typeElem) => (
+                                <SelectItem
+                                  onClick={() => {
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      Type: typeElem.label,
+                                    });
+                                  }}
+                                >
+                                  {typeElem.label}
+                                </SelectItem>
+                              )}
+                            </Select>
                             <Input
                               className="col-span-1"
                               type="text"
@@ -2486,13 +2553,15 @@ export default function App() {
               {(onClose9) => (
                 <>
                   <ModalBody className="flex p-5">
-                    <div>
-                      관리자만 접속 가능한 페이지입니다.
-                    </div>
-                    
+                    <div>관리자만 접속 가능한 페이지입니다.</div>
                   </ModalBody>
-                  <ModalFooter>                    
-                    <Button className="bg-[#b12928] text-white" onPress={onClose9}>닫기</Button>
+                  <ModalFooter>
+                    <Button
+                      className="bg-[#b12928] text-white"
+                      onPress={onClose9}
+                    >
+                      닫기
+                    </Button>
                   </ModalFooter>
                 </>
               )}
