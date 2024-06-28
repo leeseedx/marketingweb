@@ -11,7 +11,7 @@ import {
 } from "@nextui-org/react";
 import * as XLSX from "xlsx";
 import { Pagination } from "@nextui-org/react";
-import { Select, SelectItem } from "@nextui-org/react";
+import { Select, SelectItem, Skeleton } from "@nextui-org/react";
 import { Button } from "@nextui-org/react";
 import { Divider } from "@nextui-org/react";
 import { Input } from "@nextui-org/react";
@@ -31,6 +31,7 @@ import useSWR from "swr";
 import { createClient } from "@/utils/supabase/client";
 import { Icon } from "@iconify/react";
 import { RadioGroup, Radio } from "@nextui-org/react";
+
 const showUnits = [
   {
     key: 15,
@@ -350,6 +351,11 @@ export default function App() {
     onOpen: onOpen8,
     onOpenChange: onOpenChange8,
   } = useDisclosure(); // 제외하고 등록
+    const {
+    isOpen: isOpen9,
+    onOpen: onOpen9,
+    onOpenChange: onOpenChange9,
+  } = useDisclosure(); // 관리자만 접속 페이지 
   const [companyNames, setCompanyNames] = useState([]);
   const [projectNames, setProjectNames] = useState([]);
   const [selectedCompanyName, setSelectedCompanyName] = useState("");
@@ -372,6 +378,7 @@ export default function App() {
   const [itemsPerPage, setItemsPerPage] = useState(15);
   const [excelFile, setExcelFile] = useState(null);
   const [errorRowList, setErrorRowList] = useState([]);
+  const [user, setUser] = useState(null);
   // const [resumeFlag, setResumeFlag] = useState(false);
 
   // 필터값들
@@ -379,53 +386,44 @@ export default function App() {
   const [filterVariation, setFilterVariation] = useState("전체");
   const [filterType, setFilterType] = useState("전체");
   const [sorting, setSorting] = useState("등록순");
-
   const supabase = createClient();
 
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('error')) {
+      onOpen9();
+    }
+  }, []);
+
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      console.log("user:", user);
+      if (!user) {
+        window.location.href = "/login";
+      }
+      setUser(user);
+      if (user.id !== "cb1d1d38-ca7b-429a-8db5-770cd9085644") {
+        let { data: account, error } = await supabase
+          .from("account")
+          .select("*") // Filters
+          .eq("customerId", user?.email)
+          .single()
+          console.log("account:", account);
+          setSelectedCompanyName(account?.companyName)
+      }
+      
+    };
+    checkUser();
+  }, []);
+
+  console.log('selectedCompanyName:',selectedCompanyName)
   const getItems = async () => {
     const itemsPerPage = units;
     const offset = (currentPage - 1) * units;
-
-    // let {
-    //   data: registerItems,
-    //   error,
-    //   count,
-    // } = selectedCompanyName && selectedCompanyName !== "전체"
-    //     ? selectedProjectName && selectedProjectName !== "전체"
-    //     ? await supabase
-    //         .from("registerItems")
-    //         .select("*", { count: "exact" })
-    //         .eq("고객사명", selectedCompanyName)
-    //         .eq("프로젝트명", selectedProjectName)
-    //         .or(
-    //           `고객사명.ilike.%${searchKeyword}%,프로젝트명.ilike.%${searchKeyword}%`
-    //         )
-    //         .order("생성일자", { ascending: false })
-    //         .range(offset, offset + itemsPerPage - 1)
-    //     : await supabase
-    //         .from("registerItems")
-    //         .select("*", { count: "exact" })
-    //         .eq("고객사명", selectedCompanyName)
-    //         .or(
-    //           `고객사명.ilike.%${searchKeyword}%,프로젝트명.ilike.%${searchKeyword}%`
-    //         )
-    //         .order("생성일자", { ascending: false })
-    //         .range(offset, offset + itemsPerPage - 1)
-    //   : searchKeyword
-    //   ? await supabase
-    //       .from("registerItems")
-    //       .select("*", { count: "exact" })
-    //       .or(
-    //         `고객사명.ilike.%${searchKeyword}%,프로젝트명.ilike.%${searchKeyword}%`
-    //       )
-    //       .order("생성일자", { ascending: false })
-    //       .range(offset, offset + itemsPerPage - 1)
-    //   : await supabase
-    //       .from("registerItems")
-    //       .select("*", { count: "exact" })
-    //       .ilike("분류","*")
-    //       .range(offset, offset + itemsPerPage - 1)
-    //       .order("생성일자", { ascending: false });
 
     let query = supabase.from("registerItems").select("*", { count: "exact" });
 
@@ -906,7 +904,6 @@ export default function App() {
         const { data: existingItems, error: existingItemsError } =
           await supabase.from("registerItems").select("*").in("ID", idList);
 
-          
         const header_list = [
           "Name",
           "URL",
@@ -1071,1378 +1068,1442 @@ export default function App() {
 
   return (
     <>
-      <div className="px-[20vw] py-[5vh]">
-        <div className="mb-5">
-          <div>
-            <h2 className="font-bold mb-3">인플루언서 리스트</h2>
-          </div>
-          <div className="grid grid-cols-3 gap-x-2  w-1/2">
-            {filterLoading1 ? (
-              <>
-                <Select
-                  items={companyNames}
-                  placeholder="회사 선택"
-                  className="col-span-1"
-                  defaultSelectedKeys={[-1]}
-                >
-                  {(company) => (
-                    <SelectItem
-                      onClick={() => {
-                        setSelectedCompanyName(company.label);
-                        setSelectedProjectName("전체");
-                        setCurrentPage(1);
-                        getFilter2(company.label);
-                      }}
+      {user&&filterLoading1 ? (
+        <>
+          <div className="md:px-[20vw] px-[5vw] py-[5vh] ">
+            <div className="mb-5">
+              <div>
+                <h2 className="font-bold mb-3">인플루언서 리스트</h2>
+              </div>
+              <div className="grid grid-cols-3 gap-x-2 w-full md:w-1/2">
+                {filterLoading1 ? (
+                  <>
+                    <Select
+                      items={companyNames}
+                      placeholder="회사 선택"
+                      className="col-span-1"
+                      defaultSelectedKeys={[-1]}
                     >
-                      {company.label}
+                      {(company) => (
+                        <SelectItem
+                          onClick={() => {
+                            setSelectedCompanyName(company.label);
+                            setSelectedProjectName("전체");
+                            setCurrentPage(1);
+                            getFilter2(company.label);
+                          }}
+                        >
+                          {company.label}
+                        </SelectItem>
+                      )}
+                    </Select>
+                  </>
+                ) : (
+                  <Spinner></Spinner>
+                )}
+                {selectedCompanyName && (
+                  <Select
+                    items={projectNames}
+                    placeholder="프로젝트 선택"
+                    className="w-full"
+                    defaultSelectedKeys={[-1]}
+                  >
+                    {(project) => (
+                      <SelectItem
+                        onClick={() => {
+                          setSelectedProjectName(project.label);
+                          setCurrentPage(1);
+                        }}
+                      >
+                        {project.label}
+                      </SelectItem>
+                    )}
+                  </Select>
+                )}
+                <Button color="primary" className="" onPress={getItems}>
+                  검색
+                </Button>
+              </div>
+            </div>
+            <Divider className="my-4" />
+            <div className="grid grid-cols-1 md:grid-cols-7 mb-5 gap-x-10 justify-center items-center gap-y-2">
+              <div className="col-span-1">
+                <Select
+                  label="단위"
+                  items={showUnits}
+                  placeholder="단위를 선택하세요"
+                  className="w-full"
+                  defaultSelectedKeys={["15"]}
+                  onChange={handleChangeUnits}
+                >
+                  {(unit) => (
+                    <SelectItem key={unit.key}>
+                      {unit.label}
                     </SelectItem>
                   )}
                 </Select>
-              </>
-            ) : (
-              <Spinner></Spinner>
-            )}
-            {selectedCompanyName && (
-              <Select
-                items={projectNames}
-                placeholder="프로젝트 선택"
-                className="w-full"
-                defaultSelectedKeys={[-1]}
-              >
-                {(project) => (
-                  <SelectItem
-                    onClick={() => {
-                      setSelectedProjectName(project.label);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    {project.label}
-                  </SelectItem>
-                )}
-              </Select>
-            )}
-            <Button color="primary" className="" onPress={getItems}>
-              검색
-            </Button>
-          </div>
-        </div>
-        <Divider className="my-4" />
-        <div className="grid grid-cols-7 mb-5 gap-x-10 justify-center items-center">
-          <div className="col-span-1">
-            <Select
-              label="단위"
-              items={showUnits}
-              placeholder="단위를 선택하세요"
-              className="w-full"
-              defaultSelectedKeys={["15"]}
-              onChange={handleChangeUnits}
-            >
-              {(unit) => <SelectItem key={unit.key}>{unit.label}</SelectItem>}
-            </Select>
-          </div>
-          <div className="col-span-3 grid grid-cols-3 gap-x-2">
-            <Select
-              label="분류"
-              items={variations}
-              placeholder="분류를 선택하세요"
-              className="col-span-1"
-              defaultSelectedKeys={["전체"]}
-              onChange={handleChangeFilterVariation}
-            >
-              {(variation) => (
-                <SelectItem key={variation.key}>{variation.label}</SelectItem>
-              )}
-            </Select>
-            <Select
-              label="타입"
-              items={userTypes}
-              placeholder="타입을 선택하세요"
-              className="col-span-1"
-              defaultSelectedKeys={["전체"]}
-              onChange={handleChangeFilterType}
-            >
-              {(userType) => (
-                <SelectItem key={userType.key}>{userType.label}</SelectItem>
-              )}
-            </Select>
-            <Select
-              label="정렬"
-              items={sortings}
-              placeholder="정렬방법을 선택하세요"
-              className="col-span-1"
-              defaultSelectedKeys={["등록순"]}
-              onChange={handleChangeSorting}
-            >
-              {(sorting) => (
-                <SelectItem key={sorting.key}>{sorting.label}</SelectItem>
-              )}
-            </Select>
-          </div>
-          <div className="col-span-3 grid grid-cols-4 gap-x-2">
-            <Select
-              label="검색필터"
-              items={searchFilters}
-              placeholder="검색 필터를 선택하세요"
-              className="col-span-1 h-auto"
-              defaultSelectedKeys={["제품명"]}
-            >
-              {(searchFilter) => (
-                <SelectItem key={searchFilter.key}>
-                  {searchFilter.label}
-                </SelectItem>
-              )}
-            </Select>
-            <Input
-              label="검색어"
-              type="text"
-              placeholder="검색어를 입력하세요"
-              className="col-span-2 h-auto"
-            />
-            <Button color="primary" className="col-span-1 h-full">
-              검색
-            </Button>
-          </div>
-        </div>
-        <div>
-          <Table
-            aria-label="Controlled table example with dynamic content"
-            selectionMode="multiple"
-            selectedKeys={selectedKeys}
-            isStriped
-            onSelectionChange={setSelectedKeys}
-            className="w-full"
-            classNames={{
-              base: " overflow-scroll",
-              table: "",
-            }}
-          >
-            <TableHeader columns={columns}>
-              {(column) => (
-                <TableColumn
-                  width={20}
-                  className="w-20 text-center truncate"
-                  key={column.key}
+              </div>
+              <div className="col-span-1 md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-x-2 gap-y-2">
+                <Select
+                  label="분류"
+                  items={variations}
+                  placeholder="분류를 선택하세요"
+                  className="col-span-1"
+                  defaultSelectedKeys={["전체"]}
+                  onChange={handleChangeFilterVariation}
                 >
-                  {column.label}
-                </TableColumn>
-              )}
-            </TableHeader>
-            <TableBody items={items}>
-              {(item) => (
-                <TableRow key={item.id}>
-                  {(columnKey) => (
-                    <TableCell className="w-20 text-center text-nowrap">
-                      {getKeyValue(item, columnKey)}
-                    </TableCell>
+                  {(variation) => (
+                    <SelectItem key={variation.key}>
+                      {variation.label}
+                    </SelectItem>
                   )}
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-          {totalPages >= 1 && (
-            <div className="flex justify-center items-center my-5">
-              <Pagination
-                isCompact
-                showControls
-                total={totalPages}
-                initialPage={1}
-                onChange={(page) => {
-                  setCurrentPage(page);
-                  setSelectedKeys([]);
-                }}
-              />
+                </Select>
+                <Select
+                  label="타입"
+                  items={userTypes}
+                  placeholder="타입을 선택하세요"
+                  className="col-span-1"
+                  defaultSelectedKeys={["전체"]}
+                  onChange={handleChangeFilterType}
+                >
+                  {(userType) => (
+                    <SelectItem key={userType.key}>{userType.label}</SelectItem>
+                  )}
+                </Select>
+                <Select
+                  label="정렬"
+                  items={sortings}
+                  placeholder="정렬방법을 선택하세요"
+                  className="col-span-1"
+                  defaultSelectedKeys={["등록순"]}
+                  onChange={handleChangeSorting}
+                >
+                  {(sorting) => (
+                    <SelectItem key={sorting.key}>{sorting.label}</SelectItem>
+                  )}
+                </Select>
+              </div>
+              <div className="col-span-1 md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-x-2 gap-y-2">
+                <Select
+                  label={<span className="truncate">검색필터</span>}
+                  items={searchFilters}
+                  placeholder="검색 필터를 선택하세요"
+                  className="col-span-1 h-auto"
+                  defaultSelectedKeys={["제품명"]}
+                >
+                  {(searchFilter) => (
+                    <SelectItem key={searchFilter.key} >
+                      {searchFilter.label}
+                    </SelectItem>
+                  )}
+                </Select>
+                <Input
+                  label="검색어"
+                  type="text"
+                  placeholder="검색어를 입력하세요"
+                  className="col-span-1 md:col-span-2 h-auto"
+                />
+                <Button color="primary" className="col-span-1 h-[56px]">
+                  검색
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
-        <div className="flex justify-between">
-          <div className="flex gap-x-2">
-            <Button
-              variant="bordered"
-              radius="md"
-              onPress={() => {
-                setModalType("add");
-                setPrevModalType("add");
-                onOpen1();
+            <div>
+              <Table
+                aria-label="Controlled table example with dynamic content"
+                selectionMode="multiple"
+                selectedKeys={selectedKeys}
+                isStriped
+                onSelectionChange={setSelectedKeys}
+                className="w-full"
+                classNames={{
+                  base: " overflow-scroll",
+                  table: "",
+                }}
+              >
+                <TableHeader columns={columns}>
+                  {(column) => (
+                    <TableColumn
+                      width={20}
+                      className="w-20 text-center truncate"
+                      key={column.key}
+                    >
+                      {column.label}
+                    </TableColumn>
+                  )}
+                </TableHeader>
+                <TableBody items={items}>
+                  {(item) => (
+                    <TableRow key={item.id}>
+                      {(columnKey) => (
+                        <TableCell className="w-20 text-center text-nowrap">
+                          {getKeyValue(item, columnKey)}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              {totalPages >= 1 && (
+                <div className="flex justify-center items-center my-5">
+                  <Pagination
+                    isCompact
+                    showControls
+                    total={totalPages}
+                    initialPage={1}
+                    onChange={(page) => {
+                      setCurrentPage(page);
+                      setSelectedKeys([]);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col md:flex-row md:justify-between gap-y-2">
+              <div className="flex gap-x-2 justify-center items-center">
+                {user.id === "cb1d1d38-ca7b-429a-8db5-770cd9085644" ? (
+                  <>
+                    <Button
+                      variant="bordered"
+                      radius="md"
+                      onPress={() => {
+                        setModalType("add");
+                        setPrevModalType("add");
+                        onOpen1();
 
-                getFiles();
-                setPrevData(checkedInfos);
-              }}
-            >
-              개별 등록
-            </Button>
-            <Button variant="bordered" radius="md" onPress={onOpen5}>
-              엑셀 대량 등록
-            </Button>
-            <Button variant="bordered" radius="md" onPress={onOpen7}>
-              추가 정보 대량 등록
-            </Button>
-          </div>
+                        getFiles();
+                        setPrevData(checkedInfos);
+                      }}
+                    >
+                      개별 등록
+                    </Button>
+                    <Button variant="bordered" radius="md" onPress={onOpen5}>
+                      엑셀 대량 등록
+                    </Button>
+                    <Button variant="bordered" radius="md" onPress={onOpen7}>
+                      추가 정보 대량 등록
+                    </Button>
+                  </>
+                ) : (
+                  <></>
+                )}
+              </div>
 
-          <div className="flex gap-x-2">
-            <Button
-              variant="bordered"
-              radius="md"
-              onPress={() => {
-                if (!selectedCompanyName || selectedCompanyName === "전체") {
-                  setErrorText("프로젝트를 선택 후 실행해주세요");
-                  onOpen3();
-                } else {
-                  onOpen4();
-                }
-              }}
-            >
-              엑셀 추출
-            </Button>
-            <Button
-              color="primary"
-              radius="md"
-              onPress={() => {
-                if (selectedKeys.size === 0) {
-                  setModalType("error");
-                  setPrevModalType("error");
-                  onOpen3();
-                  setErrorText("항목을 선택 후 수정 버튼을 클릭해주세요");
-                } else {
-                  setModalType("view");
-                  setPrevModalType("view");
-                  onOpen1();
-                  getInfos();
-                  getFiles();
-                  setPrevData(checkedInfos);
-                }
-              }}
-            >
-              수정
-            </Button>
+              <div className="flex justify-center items-center gap-x-2">
+                <Button
+                  variant="bordered"
+                  radius="md"
+                  onPress={() => {
+                    if (
+                      !selectedCompanyName ||
+                      selectedCompanyName === "전체"
+                    ) {
+                      setErrorText("프로젝트를 선택 후 실행해주세요");
+                      onOpen3();
+                    } else {
+                      onOpen4();
+                    }
+                  }}
+                >
+                  엑셀 추출
+                </Button>
+                <Button
+                  color="primary"
+                  radius="md"
+                  onPress={() => {
+                    if (selectedKeys.size === 0) {
+                      setModalType("error");
+                      setPrevModalType("error");
+                      onOpen3();
+                      setErrorText("항목을 선택 후 수정 버튼을 클릭해주세요");
+                    } else {
+                      setModalType("view");
+                      setPrevModalType("view");
+                      onOpen1();
+                      getInfos();
+                      getFiles();
+                      setPrevData(checkedInfos);
+                    }
+                  }}
+                >
+                  수정
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-      {modalType !== "complete" && (
-        <Modal
-          isOpen={isOpen1}
-          onOpenChange={onOpenChange1}
-          size="3xl"
-          scrollBehavior="inside"
-        >
-          <ModalContent>
-            {(onClose) => (
-              <>
-                <ModalHeader className="flex flex-col gap-1">
-                  {modalType === "view" && "자세히 보기"}
-                  {modalType === "edit" && "프로젝트 수정"}
-                  {modalType === "error" && "오류"}
-                </ModalHeader>
-                <ModalBody>
-                  {true && (
-                    <div className="flex flex-col gap-2">
-                      <div>
-                        <h3 className="font-bold">분류</h3>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Select
-                          label="분류를 지정하세요"
-                          className="col-span-1 max-w-xs"
-                          defaultSelectedKeys={[checkedInfos.분류]}
-                        >
-                          {variations.map((variation) => (
-                            <SelectItem
-                              onClick={() => {
+          {modalType !== "complete" && (
+            <Modal
+              isOpen={isOpen1}
+              onOpenChange={onOpenChange1}
+              size="3xl"
+              scrollBehavior="inside"
+            >
+              <ModalContent>
+                {(onClose) => (
+                  <>
+                    <ModalHeader className="flex flex-col gap-1">
+                      {modalType === "view" && "자세히 보기"}
+                      {modalType === "edit" && "프로젝트 수정"}
+                      {modalType === "error" && "오류"}
+                    </ModalHeader>
+                    <ModalBody>
+                      {true && (
+                        <div className="flex flex-col gap-2">
+                          <div>
+                            <h3 className="font-bold">분류</h3>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <Select
+                              label="분류를 지정하세요"
+                              className="col-span-1 max-w-xs"
+                              defaultSelectedKeys={[checkedInfos.분류]}
+                            >
+                              {variations.map((variation) => (
+                                <SelectItem
+                                  onClick={() => {
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      분류: variation.label,
+                                    });
+                                  }}
+                                  key={variation.key}
+                                >
+                                  {variation.label}
+                                </SelectItem>
+                              ))}
+                            </Select>
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="고객사명"
+                              placeholder="고객사명"
+                              value={checkedInfos?.고객사명}
+                              onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
-                                  분류: variation.label,
-                                });
-                              }}
-                              key={variation.key}
-                            >
-                              {variation.label}
-                            </SelectItem>
-                          ))}
-                        </Select>
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="고객사명"
-                          placeholder="고객사명"
-                          value={checkedInfos?.고객사명}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              고객사명: e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="프로젝트명"
-                          placeholder="프로젝트명"
-                          value={checkedInfos?.프로젝트명}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              프로젝트명: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
+                                  고객사명: e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="프로젝트명"
+                              placeholder="프로젝트명"
+                              value={checkedInfos?.프로젝트명}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  프로젝트명: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
 
-                      <div>
-                        <h3 className="font-bold">
-                          프로젝트 정보<span style={{ color: "red" }}>*</span>
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Week"
-                          placeholder="Week"
-                          value={checkedInfos?.Week}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              Week: e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          type="text"
-                          label="Product"
-                          placeholder="Product"
-                          value={checkedInfos?.Product}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              Product: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-bold">
-                          마케팅 정보<span style={{ color: "red" }}>*</span>
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Target"
-                          placeholder="Target"
-                          value={checkedInfos?.Target}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              Target: e.target.value,
-                            })
-                          }
-                        />
-
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Keyword or Context"
-                          placeholder="Keyword or Context"
-                          value={checkedInfos?.["Keyword or Context"]}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              "Keyword or Context": e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          type="text"
-                          label="Interest"
-                          placeholder="Interest"
-                          value={checkedInfos?.Interest}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              Interest: e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          type="text"
-                          label="Keyword Challenge"
-                          placeholder="Keyword Challenge"
-                          value={checkedInfos?.["Keyword Challenge"]}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              "Keyword Challenge": e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-bold">
-                          인플루언서 정보
-                          <span style={{ color: "red" }}>*</span>
-                        </h3>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Type"
-                          placeholder="Type"
-                          value={checkedInfos?.Type}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              Type: e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="ID(영문입력)"
-                          placeholder="ID"
-                          value={checkedInfos?.ID}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              ID: e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Name"
-                          placeholder="Name"
-                          value={checkedInfos?.Name}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              Name: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="URL"
-                          placeholder="URL"
-                          value={checkedInfos?.URL}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              URL: e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Visitor or Follower"
-                          placeholder="Visitor or Follower"
-                          value={checkedInfos?.["Visitor or Follower"]}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              "Visitor or Follower": e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-bold">비용 정보</h3>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Creation cost"
-                          placeholder="Creation cost"
-                          value={checkedInfos?.["Creation cost"]}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              "Creation cost": e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="2nd Usage"
-                          placeholder="2nd Usage"
-                          value={checkedInfos?.["2nd Usage"]}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              "2nd Usage": e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Mirroring"
-                          placeholder="Mirroring"
-                          value={checkedInfos?.Mirroring}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              Mirroring: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-bold">컨텐츠 정보</h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Title"
-                          placeholder="Title"
-                          value={checkedInfos?.Title}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              Title: e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Contents URL"
-                          placeholder="Contents URL"
-                          value={checkedInfos?.["Contents URL"]}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              "Contents URL": e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Views"
-                          placeholder="Views"
-                          value={checkedInfos?.Views}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              Views: e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="like"
-                          placeholder="like"
-                          value={checkedInfos?.like}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              like: e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="Comment"
-                          placeholder="Comment"
-                          value={checkedInfos?.Comment}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              Comment: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="비고"
-                          placeholder="비고"
-                          value={checkedInfos?.비고}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              비고: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-bold">트래킹 정보</h3>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="URL with Parameter"
-                          placeholder="URL with Parameter"
-                          value={checkedInfos?.["URL with Parameter"]}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              "URL with Parameter": e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="URL Shorten"
-                          placeholder="URL Shorten"
-                          value={checkedInfos?.["URL Shorten"]}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              "URL Shorten": e.target.value,
-                            })
-                          }
-                        />
-                        <Input
-                          className="col-span-1"
-                          type="text"
-                          label="logger code"
-                          placeholder="logger code"
-                          value={checkedInfos?.["logger code"]}
-                          onChange={(e) =>
-                            setCheckedInfos({
-                              ...checkedInfos,
-                              "logger code": e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                      {true && (
-                        <>
                           <div>
-                            <h3 className="font-bold">기타 상세 정보</h3>
-                            <div className="flex gap-2 my-2">
-                              <Input
-                                type="text"
-                                label="이메일"
-                                placeholder="이메일"
-                                value={checkedInfos?.이메일}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    이메일: e.target.value,
-                                  })
-                                }
-                              />
-                              <Input
-                                type="text"
-                                label="이름"
-                                placeholder="이름"
-                                value={checkedInfos?.이름}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    이름: e.target.value,
-                                  })
-                                }
-                              />
-                              <Input
-                                type="text"
-                                label="연락처"
-                                placeholder="연락처"
-                                value={checkedInfos?.연락처}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    연락처: e.target.value,
-                                  })
-                                }
-                              />
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 my-2">
-                              <div className="col-span-1">
-                                <Input
-                                  type="text"
-                                  label="우편번호"
-                                  placeholder="우편번호"
-                                  value={checkedInfos?.우편번호}
-                                  onChange={(e) =>
-                                    setCheckedInfos({
-                                      ...checkedInfos,
-                                      우편번호: e.target.value,
-                                    })
-                                  }
-                                />
-                              </div>
-                              <div className="col-span-2">
-                                <Input
-                                  type="text"
-                                  label="주소"
-                                  placeholder="주소"
-                                  value={checkedInfos?.주소}
-                                  onChange={(e) =>
-                                    setCheckedInfos({
-                                      ...checkedInfos,
-                                      주소: e.target.value,
-                                    })
-                                  }
-                                />
-                              </div>
-                            </div>
-                            <div className="flex gap-2 my-2">
-                              <Input
-                                type="text"
-                                label="배송메모"
-                                placeholder="배송메모"
-                                value={checkedInfos?.배송메모}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    배송메모: e.target.value,
-                                  })
-                                }
-                              />
-                              <Input
-                                type="text"
-                                label="택배사"
-                                placeholder="택배사"
-                                value={checkedInfos?.택배사}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    택배사: e.target.value,
-                                  })
-                                }
-                              />
-                              <Input
-                                type="text"
-                                label="송장번호"
-                                placeholder="송장번호"
-                                value={checkedInfos?.송장번호}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    송장번호: e.target.value,
-                                  })
-                                }
-                              />
-                            </div>
-                            <div className="my-2">
-                              <Input
-                                type="text"
-                                label="사업자등록번호"
-                                placeholder="사업자등록번호"
-                                value={checkedInfos?.사업자등록번호}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    사업자등록번호: e.target.value,
-                                  })
-                                }
-                              />
-                            </div>
+                            <h3 className="font-bold">
+                              프로젝트 정보
+                              <span style={{ color: "red" }}>*</span>
+                            </h3>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Week"
+                              placeholder="Week"
+                              value={checkedInfos?.Week}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  Week: e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              type="text"
+                              label="Product"
+                              placeholder="Product"
+                              value={checkedInfos?.Product}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  Product: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                           <div>
-                            <h3 className="font-bold">계약정보</h3>
-                            <div className="grid grid-cols-2 gap-2 my-2">
-                              <Input
-                                className="col-span-1"
-                                type="text"
-                                label="은행"
-                                placeholder="은행"
-                                value={checkedInfos.은행}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    은행: e.target.value,
-                                  })
-                                }
-                              />
-                              <Input
-                                className="col-span-1"
-                                type="text"
-                                label="예금주"
-                                placeholder="예금주"
-                                value={checkedInfos.예금주}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    예금주: e.target.value,
-                                  })
-                                }
-                              />
-                              <Input
-                                className="col-span-1"
-                                type="text"
-                                label="계좌번호"
-                                placeholder="계좌번호"
-                                value={checkedInfos.계좌번호}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    계좌번호: e.target.value,
-                                  })
-                                }
-                              />
-                              <Input
-                                className="col-span-1"
-                                type="text"
-                                label="계약비용"
-                                placeholder="계약비용"
-                                value={checkedInfos.계약비용}
-                                onChange={(e) =>
-                                  setCheckedInfos({
-                                    ...checkedInfos,
-                                    계약비용: e.target.value,
-                                  })
-                                }
-                              />
-                            </div>
+                            <h3 className="font-bold">
+                              마케팅 정보<span style={{ color: "red" }}>*</span>
+                            </h3>
                           </div>
-                          <div className="my-2 flex flex-col gap-2">
-                            <div className="flex items-center gap-5">
-                              <h3 className="font-bold">첨부파일</h3>
-                              <Button
-                                size="sm"
-                                startContent={
-                                  <Icon
-                                    className="text-default-500 z-50"
-                                    icon="solar:paperclip-linear"
-                                    width={18}
-                                  />
-                                }
-                                variant="flat"
-                                isDisabled={!checkedInfos.ID}
-                                onPress={async () => {
-                                  const fileInput =
-                                    document.createElement("input");
-                                  fileInput.type = "file";
-                                  fileInput.onchange = async (e) => {
-                                    const file = e.target.files[0];
-                                    if (file) {
-                                      console.log("Selected file:", file.name);
-                                      const { data, error } =
-                                        await supabase.storage
-                                          .from("assets") // Replace with your bucket name
-                                          .upload(
-                                            `uploads/${checkedInfos.ID}/${file.name}`,
-                                            file,
-                                            { upsert: true }
-                                          );
-                                      if (error) {
-                                        console.error(
-                                          "Error uploading file:",
-                                          error
-                                        );
-                                      } else {
-                                        console.log(
-                                          "File uploaded successfully:",
-                                          data
-                                        );
-                                        getFiles();
-                                      }
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Target"
+                              placeholder="Target"
+                              value={checkedInfos?.Target}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  Target: e.target.value,
+                                })
+                              }
+                            />
+
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Keyword or Context"
+                              placeholder="Keyword or Context"
+                              value={checkedInfos?.["Keyword or Context"]}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  "Keyword or Context": e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              type="text"
+                              label="Interest"
+                              placeholder="Interest"
+                              value={checkedInfos?.Interest}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  Interest: e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              type="text"
+                              label="Keyword Challenge"
+                              placeholder="Keyword Challenge"
+                              value={checkedInfos?.["Keyword Challenge"]}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  "Keyword Challenge": e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-bold">
+                              인플루언서 정보
+                              <span style={{ color: "red" }}>*</span>
+                            </h3>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Type"
+                              placeholder="Type"
+                              value={checkedInfos?.Type}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  Type: e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="ID(영문입력)"
+                              placeholder="ID"
+                              value={checkedInfos?.ID}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  ID: e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Name"
+                              placeholder="Name"
+                              value={checkedInfos?.Name}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  Name: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="URL"
+                              placeholder="URL"
+                              value={checkedInfos?.URL}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  URL: e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Visitor or Follower"
+                              placeholder="Visitor or Follower"
+                              value={checkedInfos?.["Visitor or Follower"]}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  "Visitor or Follower": e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-bold">비용 정보</h3>
+                          </div>
+                          <div className="grid grid-cols-1 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Creation cost"
+                              placeholder="Creation cost"
+                              value={checkedInfos?.["Creation cost"]}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  "Creation cost": e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="2nd Usage"
+                              placeholder="2nd Usage"
+                              value={checkedInfos?.["2nd Usage"]}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  "2nd Usage": e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Mirroring"
+                              placeholder="Mirroring"
+                              value={checkedInfos?.Mirroring}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  Mirroring: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-bold">컨텐츠 정보</h3>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Title"
+                              placeholder="Title"
+                              value={checkedInfos?.Title}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  Title: e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Contents URL"
+                              placeholder="Contents URL"
+                              value={checkedInfos?.["Contents URL"]}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  "Contents URL": e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Views"
+                              placeholder="Views"
+                              value={checkedInfos?.Views}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  Views: e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="like"
+                              placeholder="like"
+                              value={checkedInfos?.like}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  like: e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="Comment"
+                              placeholder="Comment"
+                              value={checkedInfos?.Comment}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  Comment: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="비고"
+                              placeholder="비고"
+                              value={checkedInfos?.비고}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  비고: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-bold">트래킹 정보</h3>
+                          </div>
+                          <div className="grid grid-cols-1 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="URL with Parameter"
+                              placeholder="URL with Parameter"
+                              value={checkedInfos?.["URL with Parameter"]}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  "URL with Parameter": e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="URL Shorten"
+                              placeholder="URL Shorten"
+                              value={checkedInfos?.["URL Shorten"]}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  "URL Shorten": e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              className="col-span-1"
+                              type="text"
+                              label="logger code"
+                              placeholder="logger code"
+                              value={checkedInfos?.["logger code"]}
+                              onChange={(e) =>
+                                setCheckedInfos({
+                                  ...checkedInfos,
+                                  "logger code": e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          {true && (
+                            <>
+                              <div>
+                                <h3 className="font-bold">기타 상세 정보</h3>
+                                <div className="flex gap-2 my-2">
+                                  <Input
+                                    type="text"
+                                    label="이메일"
+                                    placeholder="이메일"
+                                    value={checkedInfos?.이메일}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        이메일: e.target.value,
+                                      })
                                     }
-                                  };
-                                  fileInput.click();
-                                }}
-                              >
-                                Attach
-                              </Button>
-                            </div>
-
-                            <div className="flex flex-wrap my-3">
-                              {files.map((file, index) => (
-                                <div
-                                  key={index}
-                                  className="w-1/2 flex justify-center my-1"
-                                >
+                                  />
+                                  <Input
+                                    type="text"
+                                    label="이름"
+                                    placeholder="이름"
+                                    value={checkedInfos?.이름}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        이름: e.target.value,
+                                      })
+                                    }
+                                  />
+                                  <Input
+                                    type="text"
+                                    label="연락처"
+                                    placeholder="연락처"
+                                    value={checkedInfos?.연락처}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        연락처: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 my-2">
+                                  <div className="col-span-1">
+                                    <Input
+                                      type="text"
+                                      label="우편번호"
+                                      placeholder="우편번호"
+                                      value={checkedInfos?.우편번호}
+                                      onChange={(e) =>
+                                        setCheckedInfos({
+                                          ...checkedInfos,
+                                          우편번호: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                  <div className="col-span-2">
+                                    <Input
+                                      type="text"
+                                      label="주소"
+                                      placeholder="주소"
+                                      value={checkedInfos?.주소}
+                                      onChange={(e) =>
+                                        setCheckedInfos({
+                                          ...checkedInfos,
+                                          주소: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 my-2">
+                                  <Input
+                                    type="text"
+                                    label="배송메모"
+                                    placeholder="배송메모"
+                                    value={checkedInfos?.배송메모}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        배송메모: e.target.value,
+                                      })
+                                    }
+                                  />
+                                  <Input
+                                    type="text"
+                                    label="택배사"
+                                    placeholder="택배사"
+                                    value={checkedInfos?.택배사}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        택배사: e.target.value,
+                                      })
+                                    }
+                                  />
+                                  <Input
+                                    type="text"
+                                    label="송장번호"
+                                    placeholder="송장번호"
+                                    value={checkedInfos?.송장번호}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        송장번호: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div className="my-2">
+                                  <Input
+                                    type="text"
+                                    label="사업자등록번호"
+                                    placeholder="사업자등록번호"
+                                    value={checkedInfos?.사업자등록번호}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        사업자등록번호: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <h3 className="font-bold">계약정보</h3>
+                                <div className="grid grid-cols-2 gap-2 my-2">
+                                  <Input
+                                    className="col-span-1"
+                                    type="text"
+                                    label="은행"
+                                    placeholder="은행"
+                                    value={checkedInfos.은행}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        은행: e.target.value,
+                                      })
+                                    }
+                                  />
+                                  <Input
+                                    className="col-span-1"
+                                    type="text"
+                                    label="예금주"
+                                    placeholder="예금주"
+                                    value={checkedInfos.예금주}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        예금주: e.target.value,
+                                      })
+                                    }
+                                  />
+                                  <Input
+                                    className="col-span-1"
+                                    type="text"
+                                    label="계좌번호"
+                                    placeholder="계좌번호"
+                                    value={checkedInfos.계좌번호}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        계좌번호: e.target.value,
+                                      })
+                                    }
+                                  />
+                                  <Input
+                                    className="col-span-1"
+                                    type="text"
+                                    label="계약비용"
+                                    placeholder="계약비용"
+                                    value={checkedInfos.계약비용}
+                                    onChange={(e) =>
+                                      setCheckedInfos({
+                                        ...checkedInfos,
+                                        계약비용: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <div className="my-2 flex flex-col gap-2">
+                                <div className="flex items-center gap-5">
+                                  <h3 className="font-bold">첨부파일</h3>
                                   <Button
-                                    key={file.name}
-                                    className="text-overflow-ellipsis w-full mx-2"
+                                    size="sm"
                                     startContent={
                                       <Icon
-                                        className="text-black z-50"
-                                        icon="solar:close-circle-bold"
-                                        width={25}
-                                        onClick={async (e) => {
-                                          e.target.closest(
-                                            "button"
-                                          ).style.display = "none";
-                                          const lastSelectedKey = Number(
-                                            Array.from(selectedKeys).pop()
+                                        className="text-default-500 z-50"
+                                        icon="solar:paperclip-linear"
+                                        width={18}
+                                      />
+                                    }
+                                    variant="flat"
+                                    isDisabled={!checkedInfos.ID}
+                                    onPress={async () => {
+                                      const fileInput =
+                                        document.createElement("input");
+                                      fileInput.type = "file";
+                                      fileInput.onchange = async (e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                          console.log(
+                                            "Selected file:",
+                                            file.name
                                           );
-                                          const selectedItem = items.find(
-                                            (item) =>
-                                              item.id === lastSelectedKey
-                                          );
-                                          const fileName = e.target
-                                            .closest("button")
-                                            .textContent.trim();
-                                          const { error } =
+                                          const { data, error } =
                                             await supabase.storage
-                                              .from("assets")
-                                              .remove([
-                                                `uploads/${selectedItem.ID}/${fileName}`,
-                                              ]);
+                                              .from("assets") // Replace with your bucket name
+                                              .upload(
+                                                `uploads/${checkedInfos.ID}/${file.name}`,
+                                                file,
+                                                { upsert: true }
+                                              );
                                           if (error) {
                                             console.error(
-                                              "Error deleting file:",
+                                              "Error uploading file:",
                                               error
                                             );
                                           } else {
                                             console.log(
-                                              "File deleted successfully"
+                                              "File uploaded successfully:",
+                                              data
                                             );
+                                            getFiles();
                                           }
-                                        }}
-                                      />
-                                    }
-                                    onClick={getDownload}
+                                        }
+                                      };
+                                      fileInput.click();
+                                    }}
                                   >
-                                    <p className="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
-                                      {file.name}
-                                    </p>
+                                    Attach
                                   </Button>
                                 </div>
-                              ))}
-                            </div>
-                            <div></div>
-                          </div>
+
+                                <div className="flex flex-wrap my-3">
+                                  {files.map((file, index) => (
+                                    <div
+                                      key={index}
+                                      className="w-1/2 flex justify-center my-1"
+                                    >
+                                      <Button
+                                        key={file.name}
+                                        className="text-overflow-ellipsis w-full mx-2"
+                                        startContent={
+                                          <Icon
+                                            className="text-black z-50"
+                                            icon="solar:close-circle-bold"
+                                            width={25}
+                                            onClick={async (e) => {
+                                              e.target.closest(
+                                                "button"
+                                              ).style.display = "none";
+                                              const lastSelectedKey = Number(
+                                                Array.from(selectedKeys).pop()
+                                              );
+                                              const selectedItem = items.find(
+                                                (item) =>
+                                                  item.id === lastSelectedKey
+                                              );
+                                              const fileName = e.target
+                                                .closest("button")
+                                                .textContent.trim();
+                                              const { error } =
+                                                await supabase.storage
+                                                  .from("assets")
+                                                  .remove([
+                                                    `uploads/${selectedItem.ID}/${fileName}`,
+                                                  ]);
+                                              if (error) {
+                                                console.error(
+                                                  "Error deleting file:",
+                                                  error
+                                                );
+                                              } else {
+                                                console.log(
+                                                  "File deleted successfully"
+                                                );
+                                              }
+                                            }}
+                                          />
+                                        }
+                                        onClick={getDownload}
+                                      >
+                                        <p className="w-full overflow-ellipsis overflow-hidden whitespace-nowrap">
+                                          {file.name}
+                                        </p>
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div></div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      {modalType === "edit" && (
+                        <>
+                          <Input
+                            type="text"
+                            label="고객사명"
+                            placeholder="고객사명"
+                            value={changeCompanyName}
+                            onChange={(e) =>
+                              setChangeCompanyName(e.target.value)
+                            }
+                          />
+                          <Input
+                            type="text"
+                            label="프로젝트명"
+                            placeholder="프로젝트명"
+                            value={changeProjectName}
+                            onChange={(e) =>
+                              setChangeProjectName(e.target.value)
+                            }
+                          />
                         </>
                       )}
-                    </div>
-                  )}
-                  {modalType === "edit" && (
-                    <>
-                      <Input
-                        type="text"
-                        label="고객사명"
-                        placeholder="고객사명"
-                        value={changeCompanyName}
-                        onChange={(e) => setChangeCompanyName(e.target.value)}
-                      />
-                      <Input
-                        type="text"
-                        label="프로젝트명"
-                        placeholder="프로젝트명"
-                        value={changeProjectName}
-                        onChange={(e) => setChangeProjectName(e.target.value)}
-                      />
-                    </>
-                  )}
-                  {modalType === "error" && (
-                    <>
-                      <p>확인하실 항목을 선택해주세요</p>
-                    </>
-                  )}
-                </ModalBody>
-                <ModalFooter className="flex flex-col">
-                  {modalType == "view" && (
+                      {modalType === "error" && (
+                        <>
+                          <p>확인하실 항목을 선택해주세요</p>
+                        </>
+                      )}
+                    </ModalBody>
+                    <ModalFooter className="flex flex-col">
+                      {modalType == "view" && (
+                        <Button
+                          color="success"
+                          onPress={() => {
+                            changeInfos();
+                          }}
+                        >
+                          수정
+                        </Button>
+                      )}
+                      {modalType == "add" && (
+                        <Button
+                          // color="primary"
+                          className="bg-[#b12928] text-white"
+                          onPress={() => {
+                            if (
+                              checkedInfos.Week &&
+                              checkedInfos.Product &&
+                              checkedInfos.Target &&
+                              checkedInfos["Keyword or Context"] &&
+                              checkedInfos.Interest &&
+                              checkedInfos["Keyword Challenge"] &&
+                              checkedInfos.Type &&
+                              checkedInfos.ID &&
+                              checkedInfos.Name &&
+                              checkedInfos.URL &&
+                              checkedInfos["Visitor or Follower"]
+                            ) {
+                              addInfos();
+                            } else {
+                              onOpen2();
+                            }
+                          }}
+                        >
+                          등록
+                        </Button>
+                      )}
+                      <Button
+                        className="w-full"
+                        color=""
+                        variant="light"
+                        onPress={onClose}
+                      >
+                        닫기
+                      </Button>
+                    </ModalFooter>
+                  </>
+                )}
+              </ModalContent>
+            </Modal>
+          )}
+          {modalType === "complete" && (
+            <Modal
+              isOpen={isOpen1}
+              onOpenChange={onOpenChange1}
+              isDismissable={false}
+              isKeyboardDismissDisabled={true}
+            >
+              <ModalContent>
+                {(onClose) => (
+                  <>
+                    <ModalBody className="flex p-5">
+                      {prevModalType === "add" && <p>저장 되었습니다.</p>}
+                      {prevModalType === "view" && (
+                        <p>수정이 완료되었습니다.</p>
+                      )}
+                      {prevModalType === "delete" && <p>삭제 되었습니다.</p>}
+                    </ModalBody>
+                    <ModalFooter>
+                      <Button
+                        className="bg-[#b12928] text-white"
+                        onPress={onClose}
+                      >
+                        확인
+                      </Button>
+                    </ModalFooter>
+                  </>
+                )}
+              </ModalContent>
+            </Modal>
+          )}
+
+          <Modal
+            isOpen={isOpen2}
+            onOpenChange={onOpenChange2}
+            isDismissable={false}
+            isKeyboardDismissDisabled={true}
+          >
+            <ModalContent>
+              {(onClose2) => (
+                <>
+                  <ModalBody className="flex p-5">
+                    필수 항목을 모두 작성해 주세요
+                  </ModalBody>
+                  <ModalFooter>
                     <Button
-                      color="success"
-                      onPress={() => {
-                        changeInfos();
-                      }}
+                      className="bg-[#b12928] text-white"
+                      onPress={onClose2}
                     >
-                      수정
+                      확인
                     </Button>
-                  )}
-                  {modalType == "add" && (
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
+          <Modal
+            isOpen={isOpen3}
+            onOpenChange={onOpenChange3}
+            isDismissable={false}
+            isKeyboardDismissDisabled={true}
+          >
+            <ModalContent>
+              {(onClose3) => (
+                <>
+                  <ModalBody className="flex p-5">
+                    <div dangerouslySetInnerHTML={{ __html: errorText }}></div>
+                    <ul>
+                      {errorRowList.map((row) => (
+                        <li key={row.rowIndex}>- {row.rowIndex}행</li>
+                      ))}
+                    </ul>
+                  </ModalBody>
+                  <ModalFooter>
                     <Button
-                      // color="primary"
+                      className="bg-[#b12928] text-white"
+                      onPress={onClose3}
+                    >
+                      확인
+                    </Button>
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
+          <Modal
+            isOpen={isOpen4}
+            onOpenChange={onOpenChange4}
+            isDismissable={false}
+            isKeyboardDismissDisabled={true}
+          >
+            <ModalContent>
+              {(onClose4) => (
+                <>
+                  <ModalHeader>
+                    <h3 className="font-bold">엑셀 추출</h3>
+                  </ModalHeader>
+                  <ModalBody className="flex p-5">
+                    <RadioGroup
+                      orientation="horizontal"
+                      className="flex justify-center text-primary"
+                      defaultValue={downloadType}
+                      onValueChange={setDownloadType}
+                    >
+                      <Radio value="전체">전체</Radio>
+                      <Radio value="현재페이지">현재페이지</Radio>
+                      <Radio value="선택 항목">선택 항목</Radio>
+                    </RadioGroup>
+                  </ModalBody>
+                  <ModalFooter>
+                    <Button
                       className="bg-[#b12928] text-white"
                       onPress={() => {
-                        if (
-                          checkedInfos.Week &&
-                          checkedInfos.Product &&
-                          checkedInfos.Target &&
-                          checkedInfos["Keyword or Context"] &&
-                          checkedInfos.Interest &&
-                          checkedInfos["Keyword Challenge"] &&
-                          checkedInfos.Type &&
-                          checkedInfos.ID &&
-                          checkedInfos.Name &&
-                          checkedInfos.URL &&
-                          checkedInfos["Visitor or Follower"]
-                        ) {
-                          addInfos();
-                        } else {
-                          onOpen2();
-                        }
+                        handleDownload();
+                        onClose4();
                       }}
                     >
-                      등록
+                      받기
                     </Button>
-                  )}
-                  <Button
-                    className="w-full"
-                    color=""
-                    variant="light"
-                    onPress={onClose}
-                  >
-                    닫기
-                  </Button>
-                </ModalFooter>
-              </>
-            )}
-          </ModalContent>
-        </Modal>
-      )}
-      {modalType === "complete" && (
-        <Modal
-          isOpen={isOpen1}
-          onOpenChange={onOpenChange1}
-          isDismissable={false}
-          isKeyboardDismissDisabled={true}
-        >
-          <ModalContent>
-            {(onClose) => (
-              <>
-                <ModalBody className="flex p-5">
-                  {prevModalType === "add" && <p>저장 되었습니다.</p>}
-                  {prevModalType === "view" && <p>수정이 완료되었습니다.</p>}
-                  {prevModalType === "delete" && <p>삭제 되었습니다.</p>}
-                </ModalBody>
-                <ModalFooter>
-                  <Button className="bg-[#b12928] text-white" onPress={onClose}>
-                    확인
-                  </Button>
-                </ModalFooter>
-              </>
-            )}
-          </ModalContent>
-        </Modal>
-      )}
-
-      <Modal
-        isOpen={isOpen2}
-        onOpenChange={onOpenChange2}
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-      >
-        <ModalContent>
-          {(onClose2) => (
-            <>
-              <ModalBody className="flex p-5">
-                필수 항목을 모두 작성해 주세요
-              </ModalBody>
-              <ModalFooter>
-                <Button className="bg-[#b12928] text-white" onPress={onClose2}>
-                  확인
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-      <Modal
-        isOpen={isOpen3}
-        onOpenChange={onOpenChange3}
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-      >
-        <ModalContent>
-          {(onClose3) => (
-            <>
-              <ModalBody className="flex p-5">
-                <div dangerouslySetInnerHTML={{ __html: errorText }}></div>
-                <ul>
-                  {errorRowList.map((row) => (
-                    <li key={row.rowIndex}>- {row.rowIndex}행</li>
-                  ))}
-                </ul>
-              </ModalBody>
-              <ModalFooter>
-                <Button className="bg-[#b12928] text-white" onPress={onClose3}>
-                  확인
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-      <Modal
-        isOpen={isOpen4}
-        onOpenChange={onOpenChange4}
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-      >
-        <ModalContent>
-          {(onClose4) => (
-            <>
-              <ModalHeader>
-                <h3 className="font-bold">엑셀 추출</h3>
-              </ModalHeader>
-              <ModalBody className="flex p-5">
-                <RadioGroup
-                  orientation="horizontal"
-                  className="flex justify-center text-primary"
-                  defaultValue={downloadType}
-                  onValueChange={setDownloadType}
-                >
-                  <Radio value="전체">전체</Radio>
-                  <Radio value="현재페이지">현재페이지</Radio>
-                  <Radio value="선택 항목">선택 항목</Radio>
-                </RadioGroup>
-              </ModalBody>
-              <ModalFooter>
-                <Button
-                  className="bg-[#b12928] text-white"
-                  onPress={() => {
-                    handleDownload();
-                    onClose4();
-                  }}
-                >
-                  받기
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-      <Modal
-        isOpen={isOpen5}
-        onOpenChange={onOpenChange5}
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-      >
-        <ModalContent>
-          {(onClose5) => (
-            <>
-              <ModalHeader>
-                <h3 className="font-bold">엑셀 대량 등록</h3>
-              </ModalHeader>
-              <ModalBody className="flex p-5">
-                <div className="flex justify-center items-center gap-5">
-                  <Button
-                    size="sm"
-                    startContent={
-                      <Icon
-                        className="text-default-500 z-50"
-                        icon="solar:paperclip-linear"
-                        width={18}
-                      />
-                    }
-                    variant="flat"
-                    onPress={async () => {
-                      const fileInput = document.createElement("input");
-                      fileInput.type = "file";
-                      fileInput.onchange = async (e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          setExcelFile(file);
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
+          <Modal
+            isOpen={isOpen5}
+            onOpenChange={onOpenChange5}
+            isDismissable={false}
+            isKeyboardDismissDisabled={true}
+          >
+            <ModalContent>
+              {(onClose5) => (
+                <>
+                  <ModalHeader>
+                    <h3 className="font-bold">엑셀 대량 등록</h3>
+                  </ModalHeader>
+                  <ModalBody className="flex p-5">
+                    <div className="flex justify-center items-center gap-5">
+                      <Button
+                        size="sm"
+                        startContent={
+                          <Icon
+                            className="text-default-500 z-50"
+                            icon="solar:paperclip-linear"
+                            width={18}
+                          />
                         }
-                      };
-                      fileInput.click();
-                    }}
-                  >
-                    Attach
-                  </Button>
-                  <div>
-                    <span>
-                      {excelFile ? excelFile.name : "No file selected"}
-                    </span>
-                  </div>
-                </div>
-              </ModalBody>
-              <ModalFooter className="flex w-full">
-                <div className="flex w-full justify-between">
-                  <Button
-                    className="text-white"
-                    color="success"
-                    onPress={() => {
-                      const url =
-                        "https://drkpukrcyodxhqvyajjo.supabase.co/storage/v1/object/public/assets/sample_file_rev03_240626.xlsx?t=2024-06-27T03%3A12%3A41.386Z";
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = "sample_file.xlsx";
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                    }}
-                  >
-                    엑셀 서식 다운받기
-                  </Button>
-                  <Button
-                    className="bg-[#b12928] text-white"
-                    onPress={() => {
-                      uploadFile(false);
-                    }}
-                  >
-                    등록
-                  </Button>
-                </div>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-      <Modal
-        isOpen={isOpen6}
-        onOpenChange={onOpenChange6}
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-      >
-        <ModalContent>
-          {(onClose6) => (
-            <>
-              <ModalBody className="flex p-5">
-                <div dangerouslySetInnerHTML={{ __html: errorText }}></div>
-                <ul>
-                  {errorRowList.map((row) => (
-                    <li key={row.rowIndex}>- {row.rowIndex}행</li>
-                  ))}
-                </ul>
-              </ModalBody>
-              <ModalFooter>
-                <Button
-                  className="bg-[#b12928] text-white"
-                  onPress={() => {
-                    onClose6();
-                    uploadFile(true);
-                  }}
-                >
-                  제외하고 등록
-                </Button>
-                <Button onPress={onClose6}>취소</Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-      <Modal
-        isOpen={isOpen7}
-        onOpenChange={onOpenChange7}
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-      >
-        <ModalContent>
-          {(onClose7) => (
-            <>
-              <ModalHeader>
-                <h3 className="font-bold">추가 정보 대량 등록</h3>
-              </ModalHeader>
-              <ModalBody className="flex p-5">
-                <div className="flex justify-center items-center gap-5">
-                  <Button
-                    size="sm"
-                    startContent={
-                      <Icon
-                        className="text-default-500 z-50"
-                        icon="solar:paperclip-linear"
-                        width={18}
-                      />
-                    }
-                    variant="flat"
-                    onPress={async () => {
-                      const fileInput = document.createElement("input");
-                      fileInput.type = "file";
-                      fileInput.onchange = async (e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          setExcelFile(file);
+                        variant="flat"
+                        onPress={async () => {
+                          const fileInput = document.createElement("input");
+                          fileInput.type = "file";
+                          fileInput.onchange = async (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              setExcelFile(file);
+                            }
+                          };
+                          fileInput.click();
+                        }}
+                      >
+                        Attach
+                      </Button>
+                      <div>
+                        <span>
+                          {excelFile ? excelFile.name : "No file selected"}
+                        </span>
+                      </div>
+                    </div>
+                  </ModalBody>
+                  <ModalFooter className="flex w-full">
+                    <div className="flex w-full justify-between">
+                      <Button
+                        className="text-white"
+                        color="success"
+                        onPress={() => {
+                          const url =
+                            "https://drkpukrcyodxhqvyajjo.supabase.co/storage/v1/object/public/assets/sample_file_rev03_240626.xlsx?t=2024-06-27T03%3A12%3A41.386Z";
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "sample_file.xlsx";
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                        }}
+                      >
+                        엑셀 서식 다운받기
+                      </Button>
+                      <Button
+                        className="bg-[#b12928] text-white"
+                        onPress={() => {
+                          uploadFile(false);
+                        }}
+                      >
+                        등록
+                      </Button>
+                    </div>
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
+          <Modal
+            isOpen={isOpen6}
+            onOpenChange={onOpenChange6}
+            isDismissable={false}
+            isKeyboardDismissDisabled={true}
+          >
+            <ModalContent>
+              {(onClose6) => (
+                <>
+                  <ModalBody className="flex p-5">
+                    <div dangerouslySetInnerHTML={{ __html: errorText }}></div>
+                    <ul>
+                      {errorRowList.map((row) => (
+                        <li key={row.rowIndex}>- {row.rowIndex}행</li>
+                      ))}
+                    </ul>
+                  </ModalBody>
+                  <ModalFooter>
+                    <Button
+                      className="bg-[#b12928] text-white"
+                      onPress={() => {
+                        onClose6();
+                        uploadFile(true);
+                      }}
+                    >
+                      제외하고 등록
+                    </Button>
+                    <Button onPress={onClose6}>취소</Button>
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
+          <Modal
+            isOpen={isOpen7}
+            onOpenChange={onOpenChange7}
+            isDismissable={false}
+            isKeyboardDismissDisabled={true}
+          >
+            <ModalContent>
+              {(onClose7) => (
+                <>
+                  <ModalHeader>
+                    <h3 className="font-bold">추가 정보 대량 등록</h3>
+                  </ModalHeader>
+                  <ModalBody className="flex p-5">
+                    <div className="flex justify-center items-center gap-5">
+                      <Button
+                        size="sm"
+                        startContent={
+                          <Icon
+                            className="text-default-500 z-50"
+                            icon="solar:paperclip-linear"
+                            width={18}
+                          />
                         }
-                      };
-                      fileInput.click();
-                    }}
-                  >
-                    Attach
-                  </Button>
-                  <div>
-                    <span>
-                      {excelFile ? excelFile.name : "No file selected"}
-                    </span>
-                  </div>
-                </div>
-              </ModalBody>
-              <ModalFooter className="flex w-full">
-                <div className="flex w-full justify-between">
-                  <Button
-                    className="text-white"
-                    color="success"
-                    onPress={() => {
-                      const url =
-                        "https://drkpukrcyodxhqvyajjo.supabase.co/storage/v1/object/public/assets/sample_file2_rev03_240626.xlsx?t=2024-06-27T03%3A12%3A48.192Z";
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = "sample_file.xlsx";
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                    }}
-                  >
-                    엑셀 서식 다운받기
-                  </Button>
-                  <Button
-                    className="bg-[#b12928] text-white"
-                    onPress={() => {
-                      uploadFileMore("TYPE1", false); // 업로드 시 모드를 선택하여 올리기
-                    }}
-                  >
-                    등록
-                  </Button>
-                </div>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-      <Modal
-        isOpen={isOpen8}
-        onOpenChange={onOpenChange8}
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-      >
-        <ModalContent>
-          {(onClose8) => (
-            <>
-              <ModalBody className="flex p-5">
-                <div dangerouslySetInnerHTML={{ __html: errorText }}></div>
-                <ul>
-                  {errorRowList.map((row) => (
-                    <li key={row.rowIndex}>- {row.rowIndex}행</li>
-                  ))}
-                </ul>
-              </ModalBody>
-              <ModalFooter>
-                <Button
-                  className="bg-[rgb(179,110,107)] text-white"
-                  onPress={() => {
-                    uploadFileMore("TYPE1", "false"); // 업로드 시 모드를 선택하여 올리기
-                    onClose8();
-                  }}
-                >
-                  덮어씌우기
-                </Button>
-                <Button
-                  className="bg-[#b12928] text-white"
-                  onPress={() => {
-                    uploadFileMore("TYPE2", "true");
-                    // setResumeFlag(true);
-                    onClose8();
-                  }}
-                >
-                  제외하고 등록
-                </Button>
-                <Button onPress={onClose8}>취소</Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+                        variant="flat"
+                        onPress={async () => {
+                          const fileInput = document.createElement("input");
+                          fileInput.type = "file";
+                          fileInput.onchange = async (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              setExcelFile(file);
+                            }
+                          };
+                          fileInput.click();
+                        }}
+                      >
+                        Attach
+                      </Button>
+                      <div>
+                        <span>
+                          {excelFile ? excelFile.name : "No file selected"}
+                        </span>
+                      </div>
+                    </div>
+                  </ModalBody>
+                  <ModalFooter className="flex w-full">
+                    <div className="flex w-full justify-between">
+                      <Button
+                        className="text-white"
+                        color="success"
+                        onPress={() => {
+                          const url =
+                            "https://drkpukrcyodxhqvyajjo.supabase.co/storage/v1/object/public/assets/sample_file2_rev03_240626.xlsx?t=2024-06-27T03%3A12%3A48.192Z";
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "sample_file.xlsx";
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                        }}
+                      >
+                        엑셀 서식 다운받기
+                      </Button>
+                      <Button
+                        className="bg-[#b12928] text-white"
+                        onPress={() => {
+                          uploadFileMore("TYPE1", false); // 업로드 시 모드를 선택하여 올리기
+                        }}
+                      >
+                        등록
+                      </Button>
+                    </div>
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
+          <Modal
+            isOpen={isOpen8}
+            onOpenChange={onOpenChange8}
+            isDismissable={false}
+            isKeyboardDismissDisabled={true}
+          >
+            <ModalContent>
+              {(onClose8) => (
+                <>
+                  <ModalBody className="flex p-5">
+                    <div dangerouslySetInnerHTML={{ __html: errorText }}></div>
+                    <ul>
+                      {errorRowList.map((row) => (
+                        <li key={row.rowIndex}>- {row.rowIndex}행</li>
+                      ))}
+                    </ul>
+                  </ModalBody>
+                  <ModalFooter>
+                    <Button
+                      className="bg-[rgb(179,110,107)] text-white"
+                      onPress={() => {
+                        uploadFileMore("TYPE1", "false"); // 업로드 시 모드를 선택하여 올리기
+                        onClose8();
+                      }}
+                    >
+                      덮어씌우기
+                    </Button>
+                    <Button
+                      className="bg-[#b12928] text-white"
+                      onPress={() => {
+                        uploadFileMore("TYPE2", "true");
+                        // setResumeFlag(true);
+                        onClose8();
+                      }}
+                    >
+                      제외하고 등록
+                    </Button>
+                    <Button onPress={onClose8}>취소</Button>
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
+          <Modal
+            isOpen={isOpen9}
+            onOpenChange={onOpenChange9}
+            isDismissable={false}
+            isKeyboardDismissDisabled={true}
+          >
+            <ModalContent>
+              {(onClose9) => (
+                <>
+                  <ModalBody className="flex p-5">
+                    <div>
+                      관리자만 접속 가능한 페이지입니다.
+                    </div>
+                    
+                  </ModalBody>
+                  <ModalFooter>                    
+                    <Button className="bg-[#b12928] text-white" onPress={onClose9}>닫기</Button>
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
+        </>
+      ) : (
+        <div className="w-[100vw] h-[100vh] flex items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      )}
     </>
   );
 }

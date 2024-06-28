@@ -85,8 +85,25 @@ export default function App() {
   const [changeCompanyName, setChangeCompanyName] = useState("");
   const [changeProjectName, setChangeProjectName] = useState("");
   const [prevModalType, setPrevModalType] = useState("");
-
+  const [user, setUser] = useState(null);
   const supabase = createClient();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      console.log("user:", user);
+      if (!user) {
+        window.location.href = "/login";
+      }
+      if(user.id !== "cb1d1d38-ca7b-429a-8db5-770cd9085644"){
+        window.location.href = '/?error=관리자만 접속 가능한 페이지입니다.';
+      }
+      setUser(user);      
+    };
+    checkUser();
+  }, []);
 
   const getItems = async () => {
     const itemsPerPage = 20;
@@ -292,7 +309,7 @@ export default function App() {
 
   return (
     <>
-      <div className="px-[20vw] py-[5vh] ">
+      <div className="md:px-[20vw] px-[5vw] py-[5vh]">
         <div className="mb-5">
           <div>
             <h2 className="font-bold mb-3">프로젝트 관리</h2>
@@ -400,7 +417,7 @@ export default function App() {
               }}
             />
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-center items-center md:justify-end">
           <div className="flex gap-x-2">
             <Button
               color="danger"

@@ -122,9 +122,28 @@ export default function App() {
   const [totalPages, setTotalPages] = useState("");
   const [items, setItems] = useState([]);
   const [errorText, setErrorText] = useState("");
+  const [user, setUser] = useState(null);
 
   const supabase = createClient();
   const router = useRouter();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      console.log("user:", user);
+      if (!user) {
+        window.location.href = "/login";
+      }
+      if(user.id !== "cb1d1d38-ca7b-429a-8db5-770cd9085644"){
+        window.location.href = '/?error=관리자만 접속 가능한 페이지입니다.';
+      }
+      setUser(user);      
+    };
+    checkUser();
+  }, []);
+
   const getItems = async () => {
     const itemsPerPage = 20;
     const offset = (currentPage - 1) * itemsPerPage;
@@ -342,13 +361,13 @@ export default function App() {
 
   return (
     <>
-      <div className="px-[20vw] py-[5vh] ">
+      <div className="md:px-[20vw] px-[5vw] py-[5vh]">
         <div className="mb-5">
           <div>
             <h2 className="font-bold mb-3">고객사 계정 관리</h2>
           </div>
-          <div className="flex w-full gap-x-2 justify-between">
-            <div className="flex gap-x-2 w-1/4">
+          <div className="flex flex-col md:flex-row w-full gap-x-2 justify-between gap-y-2">
+            <div className="flex gap-x-2 w-full md:w-1/4">
               {filterLoading1 ? (
                 <>
                   <Select
@@ -431,17 +450,8 @@ export default function App() {
             <Spinner></Spinner>
           )}
         </div>
-        <div className="flex justify-end">
-          <div className="flex gap-x-2">
-            {/* <Button
-              color="danger"
-              radius="md"
-              onPress={() => {
-                handleTest()
-              }}
-            >
-              TEST
-            </Button> */}
+        <div className="flex justify-center items-center md:justify-end">
+          <div className="grid grid-cols-2 md:flex gap-2">
             <Button
               color="danger"
               radius="md"

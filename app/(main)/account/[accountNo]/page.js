@@ -305,7 +305,7 @@ function page({ params }) {
   console.log("selectedCompanyName:", selectedCompanyName);
 
   return (
-    <div className="px-[20vw] py-[5vh] ">
+    <div className="md:px-[20vw] px-[5vw] py-[5vh]">
       <div className="mb-5">
         <div>
           <h2 className="font-bold mb-3">고객사 계정 관리</h2>
@@ -396,7 +396,7 @@ function page({ params }) {
           )}
         </div>
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-center items-center md:justify-end">
         <div className="flex gap-x-2">
           <Button
             color="danger"

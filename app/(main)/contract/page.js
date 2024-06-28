@@ -144,16 +144,31 @@ export default function App() {
   const [prevModalType, setPrevModalType] = useState("");
   const [files, setFiles] = useState([]);
   const [checkedInfos, setCheckedInfos] = useState({});
+  const [user, setUser] = useState(null);
   //필터값들
+  useEffect(() => {
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      console.log("user:", user);
+      if (!user) {
+        window.location.href = "/login";
+      }
+      if (user.id !== "cb1d1d38-ca7b-429a-8db5-770cd9085644") {
+        window.location.href = "/?error=관리자만 접속 가능한 페이지입니다.";
+      }
+      setUser(user);
+    };
+    checkUser();
+  }, []);
 
-  
-  
   const getInfos = () => {
     const lastSelectedKey = Array.from(selectedKeys).pop();
     const selectedItem = items.find(
       (item) => String(item.id) === String(lastSelectedKey)
     );
-    console.log("selectedItem:",selectedItem)
+    console.log("selectedItem:", selectedItem);
     const getAccountInfo = async () => {
       if (selectedItem) {
         const { data, error } = await supabase
@@ -245,7 +260,7 @@ export default function App() {
       //   계좌번호: item.accountId.bankAccountNo,
       //   계약비용: item.accountId.contractCharge,
       // }));
-      const formattedProject=registerItems
+      const formattedProject = registerItems;
 
       const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -331,7 +346,7 @@ export default function App() {
       const idsToDelete = Array.from(selectedKeys).map(Number);
 
       const { error } = await supabase
-        .from("project")
+        .from("registerItems")
         .delete()
         .in("id", idsToDelete);
 
@@ -453,17 +468,17 @@ export default function App() {
     }
   };
 
-  console.log('checkedInfos:',checkedInfos)
+  console.log("checkedInfos:", checkedInfos);
 
   return (
     <>
-      <div className="px-[20vw] py-[5vh] ">
+      <div className="md:px-[20vw] px-[5vw] py-[5vh]">
         <div className="mb-5">
           <div>
             <h2 className="font-bold mb-3">계약자 관리</h2>
           </div>
-          <div className="flex w-full gap-x-2 justify-between">
-            <div className="grid grid-cols-2 gap-x-2  w-1/3">
+          <div className="flex flex-col md:flex-row w-full gap-x-2 justify-between gap-y-2">
+            <div className="grid grid-cols-2 gap-x-2 w-full md:w-1/3">
               {filterLoading1 ? (
                 <>
                   <Select
@@ -511,9 +526,9 @@ export default function App() {
               )}
             </div>
 
-            <div className="flex gap-x-2 w-1/3">
+            <div className="flex gap-x-2 w-full md:w-1/3">
               <Select
-                defaultSelectedKeys={['15']}
+                defaultSelectedKeys={["15"]}
                 items={showUnits}
                 placeholder="갯수"
                 className="w-full"
@@ -572,7 +587,7 @@ export default function App() {
           </TableBody>
         </Table>
         <div className="flex justify-center items-center my-5">
-          {totalPages>=1 && (
+          {totalPages >= 1 && (
             <Pagination
               isCompact
               showControls
@@ -582,7 +597,7 @@ export default function App() {
             />
           )}
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-center items-center md:justify-end">
           <div className="flex gap-x-2">
             <Button
               color="success"
@@ -603,6 +618,26 @@ export default function App() {
               }}
             >
               수정
+            </Button>
+            <Button
+              color="danger"
+              radius="md"
+              className=""
+              onPress={() => {
+                if (selectedKeys.size === 0) {
+                  setModalType("error");
+                  setPrevModalType("error");
+                  onOpen();
+                } else {
+                  setModalType("delete");
+                  setPrevModalType("delete");
+                  onOpen();
+                  getFiles();
+                  getInfos();
+                }
+              }}
+            >
+              삭제
             </Button>
           </div>
         </div>
@@ -919,7 +954,7 @@ export default function App() {
                           addSelectedItems();
                           setModalType("complete");
                           changeInfos();
-                          getInfos()
+                          getInfos();
                         }}
                       >
                         수정하기
@@ -949,8 +984,25 @@ export default function App() {
                       <p>확인하실 항목을 선택해주세요</p>
                     </>
                   )}
+                  {modalType === "delete" && (
+                    <>
+                      <p>정말로 삭제하시겠습니까?</p>
+                    </>
+                  )}
                 </ModalBody>
-                <ModalFooter className="flex">
+                <ModalFooter className="flex flex-col">
+                {modalType === "delete" && (
+                    <Button
+                      className="w-full"
+                      color="danger"
+                      onPress={() => {
+                        deleteSelectedItems();
+                        setModalType("complete");
+                      }}
+                    >
+                      삭제하기
+                    </Button>
+                  )}
                   <Button
                     className="w-full"
                     color=""
@@ -981,17 +1033,7 @@ export default function App() {
                       수정하기
                     </Button>
                   )}
-                  {modalType === "delete" && (
-                    <Button
-                      color="danger"
-                      onPress={() => {
-                        deleteSelectedItems();
-                        setModalType("complete");
-                      }}
-                    >
-                      삭제하기
-                    </Button>
-                  )}
+
                 </ModalFooter>
               </>
             )}
@@ -1014,7 +1056,7 @@ export default function App() {
                   {prevModalType === "delete" && <p>삭제 되었습니다.</p>}
                 </ModalBody>
                 <ModalFooter>
-                  <Button color="primary" onPress={onClose}>
+                  <Button className="bg-[#b12928] text-white" onPress={onClose}>
                     확인
                   </Button>
                 </ModalFooter>
