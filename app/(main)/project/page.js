@@ -314,8 +314,8 @@ export default function App() {
           <div>
             <h2 className="font-bold mb-3">프로젝트 관리</h2>
           </div>
-          <div className="flex w-full gap-x-2 justify-between">
-            <div className="grid grid-cols-2 gap-x-2  w-1/3">
+          <div className="flex flex-col md:flex-row w-full gap-x-2 justify-between gap-y-2">
+            <div className="grid grid-cols-2 gap-x-2  md:w-1/3 w-full">
               {filterLoading1 ? (
                 <>
                   <Select
