@@ -1,7 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Button, Input, Checkbox, Link, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter,useDisclosure } from "@nextui-org/react";
+import {
+  Button,
+  Input,
+  Checkbox,
+  Link,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+} from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { createClient } from "@/utils/supabase/client";
 
@@ -10,15 +21,36 @@ export default function Component() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [rememberMe, setRememberMe] = useState(true);
 
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
+  useEffect(() => {
+    // Component가 마운트될 때 localStorage에서 저장된 값을 가져옴
+    const savedUsername = localStorage.getItem("username");
+    const savedRememberMe = localStorage.getItem("rememberMe") === "true";
+
+    if (savedRememberMe) {
+      setEmail(savedUsername || "");
+      setRememberMe(savedRememberMe);
+    }
+  }, []);
+
   const toggleVisibility = () => setIsVisible(!isVisible);
 
   const handleLogin = async () => {
+
+    if (rememberMe) {
+      localStorage.setItem('username', email);
+      localStorage.setItem('rememberMe', rememberMe);
+    } else {
+      localStorage.removeItem('username');
+      localStorage.removeItem('rememberMe');
+    }
+
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -27,7 +59,7 @@ export default function Component() {
 
     if (error) {
       console.error("Error logging in:", error.message);
-      onOpen()
+      onOpen();
     } else {
       console.log("Logged in successfully");
       window.location.href = "/";
@@ -38,18 +70,20 @@ export default function Component() {
     return null;
   }
 
+  console.log('rememberme:', rememberMe)
+
   return (
     <>
       <div className="flex h-[100vh] w-[100vw] items-center justify-center">
         <div className="flex w-full max-w-sm flex-col gap-4 rounded-large px-8 pb-10 pt-6">
-          <p className="pb-4 text-3xl font-semibold text-center">
-            <div className="flex justify-center">
-              <img src="/images/logo.png" alt="" width="200" />
-            </div>
-          </p>
+          <div className="flex justify-center mb-8">
+            <img src="/images/logo.png" alt="" width="200" />
+          </div>
+
+          <h1 className="text-center text-2xl font-bold">LOGIN</h1>
           <div className="flex flex-col gap-4">
             <Input
-              label="이메일"
+              label="EMAIL"
               labelPlacement="outside"
               name="email"
               placeholder="이메일을 입력해주세요"
@@ -59,7 +93,7 @@ export default function Component() {
               onChange={(e) => setEmail(e.target.value)}
             />
             <Input
-              label="비밀번호"
+              label="PASSWORD"
               labelPlacement="outside"
               name="password"
               placeholder="비밀번호를 입력해주세요"
@@ -69,6 +103,12 @@ export default function Component() {
               onChange={(e) => setPassword(e.target.value)}
             />
             <div className="flex items-center justify-end px-1 py-2">
+              <Checkbox
+                defaultSelected
+                onChange={(e) => setRememberMe(e.target.checked)}
+              >
+                아이디 저장하기
+              </Checkbox>
               {/* <Checkbox defaultSelected name="remember" size="sm">
                 Remember me
               </Checkbox> */}
@@ -82,14 +122,10 @@ export default function Component() {
               type="submit"
               onClick={handleLogin}
             >
-              로그인
+              Login
             </Button>
           </div>
-          {/* <p className="text-center text-small font-bold">
-            <Link  href="/register" size="sm">
-              가입하기
-            </Link>
-          </p> */}
+          <p className="text-center">* 로그인 후 이용해주시기 바랍니다</p>
         </div>
       </div>
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
@@ -100,9 +136,7 @@ export default function Component() {
                 로그인 실패
               </ModalHeader>
               <ModalBody>
-                <p>
-                아이디 비밀번호를 재확인해주세요
-                </p>
+                <p>아이디 비밀번호를 재확인해주세요</p>
               </ModalBody>
               <ModalFooter>
                 <Button variant="light" onPress={onClose}>

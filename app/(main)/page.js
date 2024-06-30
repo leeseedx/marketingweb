@@ -154,7 +154,7 @@ const searchFilters = [
     label: "송장번호",
   },
 ];
-const columns = [
+const columns1 = [
   {
     key: "분류",
     label: "분류",
@@ -308,6 +308,160 @@ const columns = [
     label: "계약비용",
   },
 ];
+const columns2 = [
+  {
+    key: "분류",
+    label: "분류",
+  },
+  {
+    key: "고객사명",
+    label: "고객사명",
+  },
+  {
+    key: "프로젝트명",
+    label: "프로젝트명",
+  },
+  {
+    key: "Week",
+    label: "Week",
+  },
+  {
+    key: "Product",
+    label: "Product",
+  },
+  {
+    key: "Target",
+    label: "Target",
+  },
+  {
+    key: "Keyword or Context",
+    label: "Keyword or Context",
+  },
+  {
+    key: "Keyword Challenge",
+    label: "Keyword Challenge",
+  },
+  {
+    key: "Interest",
+    label: "Interest",
+  },
+  {
+    key: "Type",
+    label: "Type",
+  },
+  {
+    key: "ID",
+    label: "ID",
+  },
+  {
+    key: "Name",
+    label: "Name",
+  },
+  {
+    key: "URL",
+    label: "URL",
+  },
+  {
+    key: "Visitor or Follower",
+    label: "Visitor or Follower",
+  },
+  {
+    key: "Creation cost",
+    label: "Creation cost",
+  },
+  {
+    key: "2nd Usage",
+    label: "2nd Usage",
+  },
+  {
+    key: "Mirroring",
+    label: "Mirroring",
+  },
+  {
+    key: "Title",
+    label: "Title",
+  },
+  {
+    key: "Contents URL",
+    label: "Contents URL",
+  },
+  {
+    key: "Views",
+    label: "Views",
+  },
+  {
+    key: "like",
+    label: "like",
+  },
+  {
+    key: "Comment",
+    label: "Comment",
+  },
+  {
+    key: "비고",
+    label: "비고",
+  },
+  {
+    key: "URL with Parameter",
+    label: "URL with Parameter",
+  },
+  {
+    key: "URL Shorten",
+    label: "URL Shorten",
+  },
+  {
+    key: "logger code",
+    label: "logger code",
+  },
+  // {
+  //   key: "이메일",
+  //   label: "이메일",
+  // },
+  // {
+  //   key: "이름",
+  //   label: "이름",
+  // },
+  // {
+  //   key: "연락처",
+  //   label: "연락처",
+  // },
+  // {
+  //   key: "우편번호",
+  //   label: "우편번호",
+  // },
+  // {
+  //   key: "주소",
+  //   label: "주소",
+  // },
+  // {
+  //   key: "배송메모",
+  //   label: "배송메모",
+  // },
+  // {
+  //   key: "택배사",
+  //   label: "택배사",
+  // },
+  // {
+  //   key: "송장번호",
+  //   label: "송장번호",
+  // },
+  // {
+  //   key: "은행",
+  //   label: "은행",
+  // },
+  // {
+  //   key: "예금주",
+  //   label: "예금주",
+  // },
+  // {
+  //   key: "계좌번호",
+  //   label: "계좌번호",
+  // },
+  // {
+  //   key: "계약비용",
+  //   label: "계약비용",
+  // },
+];
 
 const typeList = [
   {
@@ -395,6 +549,7 @@ export default function App() {
   const [errorRowList, setErrorRowList] = useState([]);
   const [user, setUser] = useState(null);
   const [isMaster, setIsMaster] = useState(true);
+  const [columns, setColumns] = useState([]);
   // const [resumeFlag, setResumeFlag] = useState(false);
 
   // 필터값들
@@ -413,6 +568,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (isMaster) {
+      setColumns(columns1);
+    } else {
+      setColumns(columns2);
+    }
+  }, [isMaster]);
+
+  useEffect(() => {
     const checkUser = async () => {
       const {
         data: { user },
@@ -423,7 +586,7 @@ export default function App() {
       }
       setUser(user);
       if (user.id !== "cb1d1d38-ca7b-429a-8db5-770cd9085644") {
-        setIsMaster(false)
+        setIsMaster(false);
         let { data: account, error } = await supabase
           .from("account")
           .select("*") // Filters
@@ -516,7 +679,7 @@ export default function App() {
       setItems(registerItems);
     }
   };
-  console.log("companyNames:",companyNames)
+  console.log("companyNames:", companyNames);
   const getFilter1 = async () => {
     let { data: project, error } = await supabase.from("project").select("*");
     if (error) {
@@ -655,6 +818,21 @@ export default function App() {
       console.log(error);
     } else {
       console.log("change successfully");
+      getItems();
+      setModalType("complete");
+    }
+  };
+  const deleteInfos = async () => {
+    setPrevModalType("delete");
+    const lastSelectedKey = Number(Array.from(selectedKeys).pop());
+    const { data, error } = await supabase
+      .from("registerItems")
+      .delete()
+      .eq("id", lastSelectedKey);
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("delete successfully");
       getItems();
       setModalType("complete");
     }
@@ -1107,6 +1285,7 @@ export default function App() {
     setSearchKeyword(selectedSearchKeyword);
   };
 
+  console.log("seletedKeys", selectedKeys);
   return (
     <>
       {user && filterLoading1 ? (
@@ -1123,8 +1302,16 @@ export default function App() {
                       items={companyNames}
                       placeholder="회사 선택"
                       className="col-span-1"
-                      defaultSelectedKeys={selectedCompanyName && selectedCompanyName !== '전체' ? [selectedCompanyName] : ['전체']}
-                      selectedKeys={!isMaster && selectedCompanyName ? [selectedCompanyName] : undefined}
+                      defaultSelectedKeys={
+                        selectedCompanyName && selectedCompanyName !== "전체"
+                          ? [selectedCompanyName]
+                          : ["전체"]
+                      }
+                      selectedKeys={
+                        !isMaster && selectedCompanyName
+                          ? [selectedCompanyName]
+                          : undefined
+                      }
                       isDisabled={!isMaster}
                     >
                       {(company) => (
@@ -1374,7 +1561,7 @@ export default function App() {
                     }
                   }}
                 >
-                  수정
+                  자세히 보기
                 </Button>
               </div>
             </div>
@@ -1426,6 +1613,7 @@ export default function App() {
                               label="고객사명"
                               placeholder="고객사명"
                               value={checkedInfos?.고객사명}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1438,6 +1626,7 @@ export default function App() {
                               type="text"
                               label="프로젝트명"
                               placeholder="프로젝트명"
+                              isDisabled={!isMaster}
                               value={checkedInfos?.프로젝트명}
                               onChange={(e) =>
                                 setCheckedInfos({
@@ -1460,6 +1649,7 @@ export default function App() {
                               type="text"
                               label="Week"
                               placeholder="Week"
+                              isDisabled={!isMaster}
                               value={checkedInfos?.Week}
                               onChange={(e) =>
                                 setCheckedInfos({
@@ -1473,6 +1663,7 @@ export default function App() {
                               label="Product"
                               placeholder="Product"
                               value={checkedInfos?.Product}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1492,6 +1683,7 @@ export default function App() {
                               type="text"
                               label="Target"
                               placeholder="Target"
+                              isDisabled={!isMaster}
                               value={checkedInfos?.Target}
                               onChange={(e) =>
                                 setCheckedInfos({
@@ -1506,6 +1698,7 @@ export default function App() {
                               type="text"
                               label="Keyword or Context"
                               placeholder="Keyword or Context"
+                              isDisabled={!isMaster}
                               value={checkedInfos?.["Keyword or Context"]}
                               onChange={(e) =>
                                 setCheckedInfos({
@@ -1519,6 +1712,7 @@ export default function App() {
                               label="Interest"
                               placeholder="Interest"
                               value={checkedInfos?.Interest}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1531,6 +1725,7 @@ export default function App() {
                               label="Keyword Challenge"
                               placeholder="Keyword Challenge"
                               value={checkedInfos?.["Keyword Challenge"]}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1546,24 +1741,12 @@ export default function App() {
                             </h3>
                           </div>
                           <div className="grid grid-cols-3 gap-2">
-                            {/* <Input
-                              className="col-span-1"
-                              type="text"
-                              label="Type"
-                              placeholder="Type"
-                              value={checkedInfos?.Type}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  Type: e.target.value,
-                                })
-                              }
-                            /> */}
                             <Select
                               items={typeList}
                               label="Type"
                               className="col-span-1 max-w-xs"
                               defaultSelectedKeys={[checkedInfos.Type]}
+                              isDisabled={!isMaster}
                             >
                               {(typeElem) => (
                                 <SelectItem
@@ -1584,6 +1767,7 @@ export default function App() {
                               label="ID(영문입력)"
                               placeholder="ID"
                               value={checkedInfos?.ID}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1597,6 +1781,7 @@ export default function App() {
                               label="Name"
                               placeholder="Name"
                               value={checkedInfos?.Name}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1612,6 +1797,7 @@ export default function App() {
                               label="URL"
                               placeholder="URL"
                               value={checkedInfos?.URL}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1625,6 +1811,7 @@ export default function App() {
                               label="Visitor or Follower"
                               placeholder="Visitor or Follower"
                               value={checkedInfos?.["Visitor or Follower"]}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1643,6 +1830,7 @@ export default function App() {
                               label="Creation cost"
                               placeholder="Creation cost"
                               value={checkedInfos?.["Creation cost"]}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1658,6 +1846,7 @@ export default function App() {
                               label="2nd Usage"
                               placeholder="2nd Usage"
                               value={checkedInfos?.["2nd Usage"]}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1671,6 +1860,7 @@ export default function App() {
                               label="Mirroring"
                               placeholder="Mirroring"
                               value={checkedInfos?.Mirroring}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1689,6 +1879,7 @@ export default function App() {
                               label="Title"
                               placeholder="Title"
                               value={checkedInfos?.Title}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1702,6 +1893,7 @@ export default function App() {
                               label="Contents URL"
                               placeholder="Contents URL"
                               value={checkedInfos?.["Contents URL"]}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1717,6 +1909,7 @@ export default function App() {
                               label="Views"
                               placeholder="Views"
                               value={checkedInfos?.Views}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1730,6 +1923,7 @@ export default function App() {
                               label="like"
                               placeholder="like"
                               value={checkedInfos?.like}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1743,6 +1937,7 @@ export default function App() {
                               label="Comment"
                               placeholder="Comment"
                               value={checkedInfos?.Comment}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1758,6 +1953,7 @@ export default function App() {
                               label="비고"
                               placeholder="비고"
                               value={checkedInfos?.비고}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1776,6 +1972,7 @@ export default function App() {
                               label="URL with Parameter"
                               placeholder="URL with Parameter"
                               value={checkedInfos?.["URL with Parameter"]}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1791,6 +1988,7 @@ export default function App() {
                               label="URL Shorten"
                               placeholder="URL Shorten"
                               value={checkedInfos?.["URL Shorten"]}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1804,6 +2002,7 @@ export default function App() {
                               label="logger code"
                               placeholder="logger code"
                               value={checkedInfos?.["logger code"]}
+                              isDisabled={!isMaster}
                               onChange={(e) =>
                                 setCheckedInfos({
                                   ...checkedInfos,
@@ -1812,7 +2011,7 @@ export default function App() {
                               }
                             />
                           </div>
-                          {true && (
+                          {isMaster && (
                             <>
                               <div>
                                 <h3 className="font-bold">기타 상세 정보</h3>
@@ -1822,6 +2021,7 @@ export default function App() {
                                     label="이메일"
                                     placeholder="이메일"
                                     value={checkedInfos?.이메일}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -1834,6 +2034,7 @@ export default function App() {
                                     label="이름"
                                     placeholder="이름"
                                     value={checkedInfos?.이름}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -1846,6 +2047,7 @@ export default function App() {
                                     label="연락처"
                                     placeholder="연락처"
                                     value={checkedInfos?.연락처}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -1861,6 +2063,7 @@ export default function App() {
                                       label="우편번호"
                                       placeholder="우편번호"
                                       value={checkedInfos?.우편번호}
+                                      isDisabled={!isMaster}
                                       onChange={(e) =>
                                         setCheckedInfos({
                                           ...checkedInfos,
@@ -1875,6 +2078,7 @@ export default function App() {
                                       label="주소"
                                       placeholder="주소"
                                       value={checkedInfos?.주소}
+                                      isDisabled={!isMaster}
                                       onChange={(e) =>
                                         setCheckedInfos({
                                           ...checkedInfos,
@@ -1890,6 +2094,7 @@ export default function App() {
                                     label="배송메모"
                                     placeholder="배송메모"
                                     value={checkedInfos?.배송메모}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -1902,6 +2107,7 @@ export default function App() {
                                     label="택배사"
                                     placeholder="택배사"
                                     value={checkedInfos?.택배사}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -1914,6 +2120,7 @@ export default function App() {
                                     label="송장번호"
                                     placeholder="송장번호"
                                     value={checkedInfos?.송장번호}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -1928,6 +2135,7 @@ export default function App() {
                                     label="사업자등록번호"
                                     placeholder="사업자등록번호"
                                     value={checkedInfos?.사업자등록번호}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -1946,6 +2154,7 @@ export default function App() {
                                     label="은행"
                                     placeholder="은행"
                                     value={checkedInfos.은행}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -1959,6 +2168,7 @@ export default function App() {
                                     label="예금주"
                                     placeholder="예금주"
                                     value={checkedInfos.예금주}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -1972,6 +2182,7 @@ export default function App() {
                                     label="계좌번호"
                                     placeholder="계좌번호"
                                     value={checkedInfos.계좌번호}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -1985,6 +2196,7 @@ export default function App() {
                                     label="계약비용"
                                     placeholder="계약비용"
                                     value={checkedInfos.계약비용}
+                                    isDisabled={!isMaster}
                                     onChange={(e) =>
                                       setCheckedInfos({
                                         ...checkedInfos,
@@ -2007,7 +2219,7 @@ export default function App() {
                                       />
                                     }
                                     variant="flat"
-                                    isDisabled={!checkedInfos.ID}
+                                    isDisabled={!checkedInfos.ID || !isMaster}
                                     onPress={async () => {
                                       const fileInput =
                                         document.createElement("input");
@@ -2140,14 +2352,26 @@ export default function App() {
                     </ModalBody>
                     <ModalFooter className="flex flex-col">
                       {modalType == "view" && (
-                        <Button
-                          color="success"
-                          onPress={() => {
-                            changeInfos();
-                          }}
-                        >
-                          수정
-                        </Button>
+                        <>
+                          <Button
+                            color="success"
+                            onPress={() => {
+                              changeInfos();
+                            }}
+                          >
+                            수정
+                          </Button>
+                          {isMaster && (
+                            <Button
+                              color="danger"
+                              onPress={() => {
+                                deleteInfos();
+                              }}
+                            >
+                              삭제
+                            </Button>
+                          )}
+                        </>
                       )}
                       {modalType == "add" && (
                         <Button
@@ -2205,7 +2429,7 @@ export default function App() {
                       {prevModalType === "view" && (
                         <p>수정이 완료되었습니다.</p>
                       )}
-                      {prevModalType === "delete" && <p>삭제 되었습니다.</p>}
+                      {prevModalType === "delete" && <p>삭제가 완료되었습니다.</p>}
                     </ModalBody>
                     <ModalFooter>
                       <Button
