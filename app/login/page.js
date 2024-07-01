@@ -16,6 +16,8 @@ import {
 import { Icon } from "@iconify/react";
 import { createClient } from "@/utils/supabase/client";
 
+
+
 export default function Component() {
   const [isVisible, setIsVisible] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);

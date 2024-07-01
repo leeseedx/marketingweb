@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Table,
   TableHeader,
@@ -163,8 +163,14 @@ export default function App() {
     checkUser();
   }, []);
 
-  const getInfos = () => {
-    const lastSelectedKey = Array.from(selectedKeys).pop();
+  const getInfos = (lastkey) => {
+    let lastSelectedKey = Array.from(selectedKeys).pop();
+    
+    if (lastkey) {
+      lastSelectedKey = lastkey;
+    }
+    console.log("lastSelectedKey:", lastSelectedKey);
+    console.log("items:", items);
     const selectedItem = items.find(
       (item) => String(item.id) === String(lastSelectedKey)
     );
@@ -468,7 +474,34 @@ export default function App() {
     }
   };
 
-  console.log("checkedInfos:", checkedInfos);
+  const renderCell = useCallback((user, columnKey) => {
+    const cellValue = user[columnKey];
+
+    switch (columnKey) {
+      case "ID":
+        return (
+          <Button
+            variant="bordered"
+            onClick={() => {
+              setSelectedKeys((prevKeys) => {
+                const newKeys = new Set(prevKeys);
+                newKeys.add(user.id.toString());
+                return newKeys;
+              });
+              setModalType("view");
+              setPrevModalType("view");
+              onOpen();
+              getFiles();
+              getInfos(user.id.toString());
+            }}
+          >
+            {cellValue}
+          </Button>
+        );
+      default:
+        return cellValue;
+    }
+  }, [getInfos]);
 
   return (
     <>
@@ -578,9 +611,7 @@ export default function App() {
             {(item) => (
               <TableRow key={item.id}>
                 {(columnKey) => (
-                  <TableCell className="w-1/7 text-center text-nowrap">
-                    {getKeyValue(item, columnKey)}
-                  </TableCell>
+                  <TableCell>{renderCell(item, columnKey)}</TableCell>
                 )}
               </TableRow>
             )}
@@ -600,7 +631,7 @@ export default function App() {
         <div className="flex justify-center items-center md:justify-end">
           <div className="flex gap-x-2">
             <Button
-              color="success"
+              color="primary"
               radius="md"
               className=""
               onPress={() => {
@@ -617,7 +648,7 @@ export default function App() {
                 }
               }}
             >
-              수정
+              자세히 보기
             </Button>
             <Button
               color="danger"
@@ -991,7 +1022,7 @@ export default function App() {
                   )}
                 </ModalBody>
                 <ModalFooter className="flex flex-col">
-                {modalType === "delete" && (
+                  {modalType === "delete" && (
                     <Button
                       className="w-full"
                       color="danger"
@@ -1033,7 +1064,6 @@ export default function App() {
                       수정하기
                     </Button>
                   )}
-
                 </ModalFooter>
               </>
             )}
@@ -1056,7 +1086,13 @@ export default function App() {
                   {prevModalType === "delete" && <p>삭제 되었습니다.</p>}
                 </ModalBody>
                 <ModalFooter>
-                  <Button className="bg-[#b12928] text-white" onPress={onClose}>
+                  <Button
+                    className="bg-[#b12928] text-white"
+                    onPress={() => {
+                      onClose();
+                      setSelectedKeys(new Set());
+                    }}
+                  >
                     확인
                   </Button>
                 </ModalFooter>

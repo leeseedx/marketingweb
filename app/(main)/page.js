@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Table,
   TableHeader,
@@ -11,7 +11,7 @@ import {
 } from "@nextui-org/react";
 import * as XLSX from "xlsx";
 import { Pagination } from "@nextui-org/react";
-import { Select, SelectItem, Skeleton } from "@nextui-org/react";
+import { Select, SelectItem, Skeleton, Tooltip } from "@nextui-org/react";
 import { Button } from "@nextui-org/react";
 import { Divider } from "@nextui-org/react";
 import { Input } from "@nextui-org/react";
@@ -550,7 +550,25 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [isMaster, setIsMaster] = useState(true);
   const [columns, setColumns] = useState([]);
-  // const [resumeFlag, setResumeFlag] = useState(false);
+  const [errorText2, setErrorText2] = useState("");
+  const [isPossible, setIsPossible] = useState(false);
+  const [session, setSession] = useState(null);
+  const [isInvalid, setIsInvalid] = useState({
+    "Visitor or Follower": true,
+    고객사명: true,
+    프로젝트명: true,
+    Week: true,
+    Product: true,
+    Target: true,
+    "Keyword or Context": true,
+    Interest: true,
+    "Keyword Challenge": true,
+    Type: true,
+    ID: true,
+    Name: true,
+    URL: true,
+    "Visitor or Follower": true,
+  });
 
   // 필터값들
   const [units, setUnits] = useState(15);
@@ -560,6 +578,20 @@ export default function App() {
   const [filterSearch, setFilterSearch] = useState("제품명");
   const supabase = createClient();
 
+
+  const getSession = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    setSession(session);
+    
+  };
+
+  useEffect(() => {
+    getSession();
+  }, []);
+
+  console.log('session:',session)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("error")) {
@@ -598,8 +630,6 @@ export default function App() {
     checkUser();
   }, []);
 
-  console.log("selectedCompanyName:", selectedCompanyName);
-  console.log("selectedProjectName:", selectedProjectName);
   const getItems = async () => {
     const itemsPerPage = units;
     const offset = (currentPage - 1) * units;
@@ -679,7 +709,7 @@ export default function App() {
       setItems(registerItems);
     }
   };
-  console.log("companyNames:", companyNames);
+
   const getFilter1 = async () => {
     let { data: project, error } = await supabase.from("project").select("*");
     if (error) {
@@ -729,10 +759,12 @@ export default function App() {
   useEffect(() => {
     getFilter2(selectedCompanyName);
   }, [selectedCompanyName, selectedProjectName]);
+
   useEffect(() => {
-    getItems();
+    if (isPossible) {
+      getItems();
+    }
   }, [currentPage, units, filterVariation, filterType, sorting]);
-  console.log("sorting:", sorting);
 
   const getInfos = () => {
     const lastSelectedKey = Array.from(selectedKeys).pop();
@@ -823,7 +855,7 @@ export default function App() {
     }
   };
   const deleteInfos = async () => {
-    setPrevModalType("delete");
+    setPrevModalType;
     const lastSelectedKey = Number(Array.from(selectedKeys).pop());
     const { data, error } = await supabase
       .from("registerItems")
@@ -1140,21 +1172,6 @@ export default function App() {
           "계약비용",
         ];
 
-        // const duplicateRows = [];
-        // const noDuplicateRows = [];
-        // console.log("existingItems",existingItems);
-        // existingItems에서 header_list의 값이 하나라도 있는지 확인
-        // existingItems.forEach(item => {
-        //   const hasHeader = header_list.some(header => header in item);
-
-        //   const rowIndex = itemsToInsert.findIndex(insertedItem => insertedItem.ID === item.ID) + 4; // Adding 4 because itemsToInsert starts from the 4th row of the Excel file
-        //   if (hasHeader) {
-        //     duplicateRows.push({ ...item, rowIndex });
-        //   } else {
-        //     noDuplicateRows.push({ ...item, rowIndex });
-        //   }
-        // });
-
         console.log("existingItems", existingItems);
 
         const duplicateRows = [];
@@ -1285,7 +1302,94 @@ export default function App() {
     setSearchKeyword(selectedSearchKeyword);
   };
 
-  console.log("seletedKeys", selectedKeys);
+  const validateNumber = (value) => !isNaN(value);
+
+  useEffect(() => {
+    const newIsInvalid = { ...isInvalid };
+
+    if (
+      checkedInfos["Visitor or Follower"] === "" ||
+      !validateNumber(checkedInfos["Visitor or Follower"])
+    ) {
+      newIsInvalid["Visitor or Follower"] = true;
+    } else {
+      newIsInvalid["Visitor or Follower"] = false;
+    }
+
+    if (!checkedInfos["고객사명"]) {
+      newIsInvalid["고객사명"] = true;
+    } else {
+      newIsInvalid["고객사명"] = false;
+    }
+
+    if (!checkedInfos["프로젝트명"]) {
+      newIsInvalid["프로젝트명"] = true;
+    } else {
+      newIsInvalid["프로젝트명"] = false;
+    }
+    if (!checkedInfos["Week"]) {
+      newIsInvalid["Week"] = true;
+    } else {
+      newIsInvalid["Week"] = false;
+    }
+    if (!checkedInfos["Product"]) {
+      newIsInvalid["Product"] = true;
+    } else {
+      newIsInvalid["Product"] = false;
+    }
+    if (!checkedInfos["Keyword or Context"]) {
+      newIsInvalid["Keyword or Context"] = true;
+    } else {
+      newIsInvalid["Keyword or Context"] = false;
+    }
+    if (!checkedInfos["Target"]) {
+      newIsInvalid["Target"] = true;
+    } else {
+      newIsInvalid["Target"] = false;
+    }
+    if (!checkedInfos["Interest"]) {
+      newIsInvalid["Interest"] = true;
+    } else {
+      newIsInvalid["Interest"] = false;
+    }
+    if (!checkedInfos["Keyword Challenge"]) {
+      newIsInvalid["Keyword Challenge"] = true;
+    } else {
+      newIsInvalid["Keyword Challenge"] = false;
+    }
+    if (!checkedInfos["Type"]) {
+      newIsInvalid["Type"] = true;
+    } else {
+      newIsInvalid["Type"] = false;
+    }
+    if (!checkedInfos["ID"] || /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(checkedInfos["ID"])) {
+      newIsInvalid["ID"] = true;
+    } else {
+      newIsInvalid["ID"] = false;
+    }
+    if (!checkedInfos["URL"]) {
+      newIsInvalid["URL"] = true;
+    } else {
+      newIsInvalid["URL"] = false;
+    }
+    if (!checkedInfos["Name"]) {
+      newIsInvalid["Name"] = true;
+    } else {
+      newIsInvalid["Name"] = false;
+    }
+    if (
+      !checkedInfos["Visitor or Follower"] ||
+      !validateNumber(checkedInfos["Visitor or Follower"])
+    ) {
+      newIsInvalid["Visitor or Follower"] = true;
+    } else {
+      newIsInvalid["Visitor or Follower"] = false;
+    }
+    setIsInvalid(newIsInvalid);
+  }, [checkedInfos]);
+
+  console.log("checkedInfos:", checkedInfos);
+  console.log("isInvalid:", isInvalid);
   return (
     <>
       {user && filterLoading1 ? (
@@ -1351,7 +1455,14 @@ export default function App() {
                     )}
                   </Select>
                 )}
-                <Button color="primary" className="" onPress={getItems}>
+                <Button
+                  color="primary"
+                  className=""
+                  onPress={() => {
+                    setIsPossible(true);
+                    getItems();
+                  }}
+                >
                   검색
                 </Button>
               </div>
@@ -1505,7 +1616,9 @@ export default function App() {
                         setModalType("add");
                         setPrevModalType("add");
                         onOpen1();
-
+                        setCheckedInfos({
+                          분류: "미지정",
+                        });
                         getFiles();
                         setPrevData(checkedInfos);
                       }}
@@ -1611,6 +1724,8 @@ export default function App() {
                               className="col-span-1"
                               type="text"
                               label="고객사명"
+                              isInvalid={isInvalid["고객사명"]}
+                              color={isInvalid["고객사명"] ? "danger" : ""}
                               placeholder="고객사명"
                               value={checkedInfos?.고객사명}
                               isDisabled={!isMaster}
@@ -1625,6 +1740,8 @@ export default function App() {
                               className="col-span-1"
                               type="text"
                               label="프로젝트명"
+                              isInvalid={isInvalid["프로젝트명"]}
+                              color={isInvalid["프로젝트명"] ? "danger" : ""}
                               placeholder="프로젝트명"
                               isDisabled={!isMaster}
                               value={checkedInfos?.프로젝트명}
@@ -1648,6 +1765,8 @@ export default function App() {
                               className="col-span-1"
                               type="text"
                               label="Week"
+                              isInvalid={isInvalid["Week"]}
+                              color={isInvalid["Week"] ? "danger" : ""}
                               placeholder="Week"
                               isDisabled={!isMaster}
                               value={checkedInfos?.Week}
@@ -1661,6 +1780,8 @@ export default function App() {
                             <Input
                               type="text"
                               label="Product"
+                              isInvalid={isInvalid["Product"]}
+                              color={isInvalid["Product"] ? "danger" : ""}
                               placeholder="Product"
                               value={checkedInfos?.Product}
                               isDisabled={!isMaster}
@@ -1682,6 +1803,8 @@ export default function App() {
                               className="col-span-1"
                               type="text"
                               label="Target"
+                              isInvalid={isInvalid["Target"]}
+                              color={isInvalid["Target"] ? "danger" : ""}
                               placeholder="Target"
                               isDisabled={!isMaster}
                               value={checkedInfos?.Target}
@@ -1697,6 +1820,10 @@ export default function App() {
                               className="col-span-1"
                               type="text"
                               label="Keyword or Context"
+                              isInvalid={isInvalid["Keyword or Context"]}
+                              color={
+                                isInvalid["Keyword or Context"] ? "danger" : ""
+                              }
                               placeholder="Keyword or Context"
                               isDisabled={!isMaster}
                               value={checkedInfos?.["Keyword or Context"]}
@@ -1710,6 +1837,8 @@ export default function App() {
                             <Input
                               type="text"
                               label="Interest"
+                              isInvalid={isInvalid["Interest"]}
+                              color={isInvalid["Interest"] ? "danger" : ""}
                               placeholder="Interest"
                               value={checkedInfos?.Interest}
                               isDisabled={!isMaster}
@@ -1723,6 +1852,10 @@ export default function App() {
                             <Input
                               type="text"
                               label="Keyword Challenge"
+                              isInvalid={isInvalid["Keyword Challenge"]}
+                              color={
+                                isInvalid["Keyword Challenge"] ? "danger" : ""
+                              }
                               placeholder="Keyword Challenge"
                               value={checkedInfos?.["Keyword Challenge"]}
                               isDisabled={!isMaster}
@@ -1744,41 +1877,49 @@ export default function App() {
                             <Select
                               items={typeList}
                               label="Type"
+                              isInvalid={isInvalid["Type"]}
+                              color={isInvalid["Type"] ? "danger" : ""}
                               className="col-span-1 max-w-xs"
                               defaultSelectedKeys={[checkedInfos.Type]}
                               isDisabled={!isMaster}
+                              onChange={(selectedKeys) => {
+                                const selectedType = selectedKeys.target.value;
+                                setCheckedInfos((prevInfos) => ({
+                                  ...prevInfos,
+                                  Type: selectedType,
+                                }));
+                              }}
                             >
                               {(typeElem) => (
-                                <SelectItem
-                                  onClick={() => {
-                                    setCheckedInfos({
-                                      ...checkedInfos,
-                                      Type: typeElem.label,
-                                    });
-                                  }}
-                                >
+                                <SelectItem key={typeElem.key}>
                                   {typeElem.label}
                                 </SelectItem>
                               )}
                             </Select>
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="ID(영문입력)"
-                              placeholder="ID"
-                              value={checkedInfos?.ID}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  ID: e.target.value,
-                                })
-                              }
-                            />
+                            <Tooltip content="한글을 제외하고 입력해주세요">
+                              <Input
+                                className="col-span-1"
+                                type="text"
+                                label="ID(영문입력)"
+                                isInvalid={isInvalid["ID"]}
+                                color={isInvalid["ID"] ? "danger" : ""}
+                                placeholder="ID"
+                                value={checkedInfos?.ID}
+                                isDisabled={!isMaster}
+                                onChange={(e) =>
+                                  setCheckedInfos({
+                                    ...checkedInfos,
+                                    ID: e.target.value,
+                                  })
+                                }
+                              />
+                            </Tooltip>
                             <Input
                               className="col-span-1"
                               type="text"
                               label="Name"
+                              isInvalid={isInvalid["Name"]}
+                              color={isInvalid["Name"] ? "danger" : ""}
                               placeholder="Name"
                               value={checkedInfos?.Name}
                               isDisabled={!isMaster}
@@ -1795,6 +1936,8 @@ export default function App() {
                               className="col-span-1"
                               type="text"
                               label="URL"
+                              isInvalid={isInvalid["URL"]}
+                              color={isInvalid["URL"] ? "danger" : ""}
                               placeholder="URL"
                               value={checkedInfos?.URL}
                               isDisabled={!isMaster}
@@ -1805,20 +1948,44 @@ export default function App() {
                                 })
                               }
                             />
-                            <Input
+                            {/* <Input
                               className="col-span-1"
                               type="text"
                               label="Visitor or Follower"
                               placeholder="Visitor or Follower"
                               value={checkedInfos?.["Visitor or Follower"]}
                               isDisabled={!isMaster}
+                              
                               onChange={(e) =>
+
                                 setCheckedInfos({
                                   ...checkedInfos,
                                   "Visitor or Follower": e.target.value,
                                 })
                               }
-                            />
+                            /> */}
+                            <Tooltip content="숫자만 입력해주세요">
+                              <Input
+                                className="col-span-1"
+                                type="text"
+                                isInvalid={isInvalid["Visitor or Follower"]}
+                                color={
+                                  isInvalid["Visitor or Follower"]
+                                    ? "danger"
+                                    : ""
+                                }
+                                label="Visitor or Follower"
+                                placeholder="Visitor or Follower"
+                                value={checkedInfos?.["Visitor or Follower"]}
+                                isDisabled={!isMaster}
+                                onChange={(e) =>
+                                  setCheckedInfos({
+                                    ...checkedInfos,
+                                    "Visitor or Follower": e.target.value,
+                                  })
+                                }
+                              />
+                            </Tooltip>
                           </div>
                           <div>
                             <h3 className="font-bold">비용 정보</h3>
@@ -2378,6 +2545,7 @@ export default function App() {
                           // color="primary"
                           className="bg-[#b12928] text-white"
                           onPress={() => {
+                            console.log(checkedInfos);
                             if (
                               checkedInfos.Week &&
                               checkedInfos.Product &&
@@ -2393,6 +2561,7 @@ export default function App() {
                             ) {
                               addInfos();
                             } else {
+                              setErrorText2("필수 항목을 재확인 해주세요");
                               onOpen2();
                             }
                           }}
@@ -2429,7 +2598,9 @@ export default function App() {
                       {prevModalType === "view" && (
                         <p>수정이 완료되었습니다.</p>
                       )}
-                      {prevModalType === "delete" && <p>삭제가 완료되었습니다.</p>}
+                      {prevModalType === "delete" && (
+                        <p>삭제가 완료되었습니다.</p>
+                      )}
                     </ModalBody>
                     <ModalFooter>
                       <Button
@@ -2454,9 +2625,7 @@ export default function App() {
             <ModalContent>
               {(onClose2) => (
                 <>
-                  <ModalBody className="flex p-5">
-                    필수 항목을 모두 작성해 주세요
-                  </ModalBody>
+                  <ModalBody className="flex p-5">{errorText2}</ModalBody>
                   <ModalFooter>
                     <Button
                       className="bg-[#b12928] text-white"

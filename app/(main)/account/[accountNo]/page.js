@@ -124,11 +124,10 @@ function page({ params }) {
   const [value, setValue] = useState([]);
   const [targetUser, setTargetUser] = useState(null);
 
-
-  console.log('selectedProjectName:',selectedProjectName)
+  console.log("selectedProjectName:", selectedProjectName);
 
   const supabase = createClient();
-  
+
   useEffect(() => {
     const checkUser = async () => {
       const { data: user, error } = await supabase
@@ -270,36 +269,25 @@ function page({ params }) {
   }, [selectedCompanyName, selectedProjectName]);
 
   const deleteSelectedItems = async () => {
-    if (selectedKeys && selectedKeys.size > 0) {
-      // const changeList = Array.from(projects).map((elem) => {
-      //   return { projectName: elem.projectName,companyName: elem.companyName,accountId:accountNo };
-      // });
+    const selectedProjects = Array.from(selectedKeys);
 
-      const selectedProjects = projectsTotal
-        .filter((project) => selectedKeys.has(String(project.id)))
-        .map((project) => ({
-          projectName: project.projectName,
-          companyName: project.companyName,
-          accountId: accountNo,
-        }));
-
-      console.log("selectedProjects:", selectedProjects);
-      for (const project of selectedProjects) {
-        const { error } = await supabase
-          .from("authProject")
-          .delete()
-          .eq("accountId", Number(accountNo))
-          .eq("projectName", project.projectName);
-        if (error) {
-          console.log("Error updating item with id:", updateId, error);
-        }
+    console.log("selectedProjects:", selectedProjects);
+    for (const project of selectedProjects) {
+      const { error } = await supabase
+        .from("authProject")
+        .delete()
+        .eq("id", project);
+      if (error) {
+        console.log("Error updating item with id:", updateId, error);
       }
-
-      getItems();
-      setSelectedKeys(new Set());
-      setSelectedKeys2(new Set());
     }
+
+    getItems();
+    setSelectedKeys(new Set());
+    setSelectedKeys2(new Set());
   };
+
+  console.log("selectedKeys:", selectedKeys);
 
   const addSelectedItems = async () => {
     if (selectedKeys2 && selectedKeys2.size > 0) {
@@ -325,8 +313,6 @@ function page({ params }) {
       setSelectedKeys2(new Set());
     }
   };
-
-  console.log("selectedCompanyName:", selectedCompanyName);
 
   return (
     <div className="md:px-[20vw] px-[5vw] py-[5vh]">
@@ -484,15 +470,14 @@ function page({ params }) {
                               items={projectNames}
                               placeholder="프로젝트"
                               className="w-full"
-                              defaultSelectedKeys={['-1']}
+                              defaultSelectedKeys={["-1"]}
                             >
                               {(project) => (
                                 <SelectItem
                                   key={project.key}
-                                  onClick={() =>{
-                                    setSelectedProjectName(project.label)
-                                  }
-                                  }
+                                  onClick={() => {
+                                    setSelectedProjectName(project.label);
+                                  }}
                                 >
                                   {project.label}
                                 </SelectItem>
@@ -671,7 +656,7 @@ function page({ params }) {
                   {prevModalType === "delete" && <p>삭제 되었습니다.</p>}
                 </ModalBody>
                 <ModalFooter>
-                  <Button color="primary" onPress={onClose}>
+                  <Button className="bg-[#b12928] text-white" onPress={onClose}>
                     확인
                   </Button>
                 </ModalFooter>

@@ -365,7 +365,7 @@ export default function App() {
       console.log("No items selected for deletion.");
     }
   };
-  
+
   return (
     <>
       <div className="md:px-[20vw] px-[5vw] py-[5vh]">
