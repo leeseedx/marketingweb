@@ -611,7 +611,7 @@ export default function App() {
             {(item) => (
               <TableRow key={item.id}>
                 {(columnKey) => (
-                  <TableCell>{renderCell(item, columnKey)}</TableCell>
+                  <TableCell className="text-center">{renderCell(item, columnKey)}</TableCell>
                 )}
               </TableRow>
             )}

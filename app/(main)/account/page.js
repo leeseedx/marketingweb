@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Table,
   TableHeader,
@@ -29,19 +29,15 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-const supabaseURL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseURL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || "";
 
-const supabaseAdmin = createSupabaseClient(
-  supabaseURL,
-  supabaseKey,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
+const supabaseAdmin = createSupabaseClient(supabaseURL, supabaseKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
 
 const rows = [
   {
@@ -105,7 +101,11 @@ export default function App() {
     onOpen: onOpen2,
     onOpenChange: onOpenChange2,
   } = useDisclosure();
-
+  const {
+    isOpen: isOpen3,
+    onOpen: onOpen3,
+    onOpenChange: onOpenChange3,
+  } = useDisclosure(); //로그보기
   const [filterLoading1, setFilterLoading1] = useState(false);
   const [companyNames, setCompanyNames] = useState([]);
   const [selectedCompanyName, setSelectedCompanyName] = useState("");
@@ -136,10 +136,10 @@ export default function App() {
       if (!user) {
         window.location.href = "/login";
       }
-      if(user.id !== "cb1d1d38-ca7b-429a-8db5-770cd9085644"){
-        window.location.href = '/?error=관리자만 접속 가능한 페이지입니다.';
+      if (user.id !== "cb1d1d38-ca7b-429a-8db5-770cd9085644") {
+        window.location.href = "/?error=관리자만 접속 가능한 페이지입니다.";
       }
-      setUser(user);      
+      setUser(user);
     };
     checkUser();
   }, []);
@@ -262,13 +262,14 @@ export default function App() {
     //     password: changeCustomerPw,
     //   }
     // );
-    const { data:dataSignup, error:errorSignup } = await supabaseAdmin.auth.admin.createUser({
-      email: changeCustomerId,
-      password: changeCustomerPw,
-      // user_metadata: { name: 'Yoda' }
-    }) 
+    const { data: dataSignup, error: errorSignup } =
+      await supabaseAdmin.auth.admin.createUser({
+        email: changeCustomerId,
+        password: changeCustomerPw,
+        // user_metadata: { name: 'Yoda' }
+      });
 
-    if(errorSignup){
+    if (errorSignup) {
       console.log(errorSignup);
     }
 
@@ -365,7 +366,27 @@ export default function App() {
       console.log("No items selected for deletion.");
     }
   };
-  
+
+  const renderCell = useCallback((user, columnKey) => {
+    const cellValue = user[columnKey];
+
+    switch (columnKey) {
+      case "활동로그":
+        return (
+          <Button
+            variant="bordered"
+            onClick={() => {
+              onOpen3()
+            }}
+          >
+            보기
+          </Button>
+        );
+      default:
+        return cellValue;
+    }
+  }, []);
+
   return (
     <>
       <div className="md:px-[20vw] px-[5vw] py-[5vh]">
@@ -433,9 +454,7 @@ export default function App() {
             {(item) => (
               <TableRow key={item.id}>
                 {(columnKey) => (
-                  <TableCell className="w-1/5 text-center">
-                    {getKeyValue(item, columnKey)}
-                  </TableCell>
+                  <TableCell className="text-center">{renderCell(item, columnKey)}</TableCell>
                 )}
               </TableRow>
             )}
@@ -703,6 +722,25 @@ export default function App() {
               <ModalBody className="flex p-5">{errorText}</ModalBody>
               <ModalFooter>
                 <Button className="bg-[#b12928] text-white" onPress={onClose2}>
+                  확인
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+      <Modal
+        isOpen={isOpen3}
+        onOpenChange={onOpenChange3}
+        isDismissable={false}
+        isKeyboardDismissDisabled={true}
+      >
+        <ModalContent>
+          {(onClose3) => (
+            <>
+              <ModalBody className="flex p-5">헬로</ModalBody>
+              <ModalFooter>
+                <Button className="bg-[#b12928] text-white" onPress={onClose3}>
                   확인
                 </Button>
               </ModalFooter>
