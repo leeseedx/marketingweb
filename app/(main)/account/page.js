@@ -123,9 +123,27 @@ export default function App() {
   const [items, setItems] = useState([]);
   const [errorText, setErrorText] = useState("");
   const [user, setUser] = useState(null);
-
+  const [logs, setLogs] = useState([]);
   const supabase = createClient();
   const router = useRouter();
+
+  const getLogs = async (emailAccount) => {
+    if (emailAccount) {
+      const { data: logs, error } = await supabase
+        .from("activitylog")
+        .select("*")
+        .eq("account", emailAccount);
+
+      if (error) {
+        console.error("Error fetching logs:", error.message);
+      } else {
+        setLogs(logs);
+        console.log("Logs fetched successfully:", logs);
+      }
+    } else {
+      console.log("User email is not available.");
+    }
+  };
 
   useEffect(() => {
     const checkUser = async () => {
@@ -238,8 +256,6 @@ export default function App() {
     }
   }, [selectedKeys]);
 
-  console.log("selectedItem:", selectedItem);
-
   useEffect(() => {
     if (selectedKeys) {
       const lastSelectedKey = Array.from(selectedKeys).map(Number).pop();
@@ -256,12 +272,6 @@ export default function App() {
   }, [selectedKeys]);
 
   const addSelectedItems = async () => {
-    // const { data: dataSignup, error: errorSignup } = await supabase.auth.signUp(
-    //   {
-    //     email: changeCustomerId,
-    //     password: changeCustomerPw,
-    //   }
-    // );
     const { data: dataSignup, error: errorSignup } =
       await supabaseAdmin.auth.admin.createUser({
         email: changeCustomerId,
@@ -376,7 +386,8 @@ export default function App() {
           <Button
             variant="bordered"
             onClick={() => {
-              onOpen3()
+              onOpen3();
+              getLogs(user.고객사ID);
             }}
           >
             보기
@@ -386,6 +397,8 @@ export default function App() {
         return cellValue;
     }
   }, []);
+
+  console.log("logs:", logs);
 
   return (
     <>
@@ -454,7 +467,9 @@ export default function App() {
             {(item) => (
               <TableRow key={item.id}>
                 {(columnKey) => (
-                  <TableCell className="text-center">{renderCell(item, columnKey)}</TableCell>
+                  <TableCell className="text-center">
+                    {renderCell(item, columnKey)}
+                  </TableCell>
                 )}
               </TableRow>
             )}
@@ -738,7 +753,28 @@ export default function App() {
         <ModalContent>
           {(onClose3) => (
             <>
-              <ModalBody className="flex p-5">헬로</ModalBody>
+              <ModalBody className="flex p-5">
+                <Table
+                  className="w-full overflow-y-auto h-[50vh]"
+                >
+                  <TableHeader>
+                    <TableColumn>활동일시</TableColumn>
+                    <TableColumn>내용</TableColumn>
+                    
+                  </TableHeader>
+                  <TableBody>
+                    {logs.map((log,index)=>(
+                      <TableRow key={log.index}>
+                        <TableCell>{new Date(log.created_at).toISOString().replace('T', ' ').substring(0, 19)}</TableCell>
+                        <TableCell>{log.action}</TableCell>
+                      </TableRow>
+                    ))}
+                    
+
+
+                  </TableBody>
+                </Table>
+              </ModalBody>
               <ModalFooter>
                 <Button className="bg-[#b12928] text-white" onPress={onClose3}>
                   확인

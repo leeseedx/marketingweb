@@ -552,7 +552,6 @@ export default function App() {
   const [columns, setColumns] = useState([]);
   const [errorText2, setErrorText2] = useState("");
   const [isPossible, setIsPossible] = useState(false);
-  const [session, setSession] = useState(null);
   const [isInvalid, setIsInvalid] = useState({
     "Visitor or Follower": true,
     고객사명: true,
@@ -578,20 +577,6 @@ export default function App() {
   const [filterSearch, setFilterSearch] = useState("제품명");
   const supabase = createClient();
 
-
-  const getSession = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    setSession(session);
-    
-  };
-
-  useEffect(() => {
-    getSession();
-  }, []);
-
-  console.log('session:',session)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("error")) {
@@ -849,7 +834,24 @@ export default function App() {
     if (error) {
       console.log(error);
     } else {
-      console.log("change successfully");
+      if (user.email != "leeseedx@naver.com") {
+        const { error: logError } = await supabase
+          .from("activitylog")
+          .insert([
+            {
+              account: user.email,
+              action: "분류 변경",
+              created_at: new Date(),
+            },
+          ]);
+
+        if (logError) {
+          console.error("Error logging activity:", logError.message);
+        } else {
+          console.log("Activity logged successfully");
+        }
+      }
+
       getItems();
       setModalType("complete");
     }
@@ -1172,8 +1174,6 @@ export default function App() {
           "계약비용",
         ];
 
-        console.log("existingItems", existingItems);
-
         const duplicateRows = [];
         const noDuplicateRows = [];
 
@@ -1388,8 +1388,6 @@ export default function App() {
     setIsInvalid(newIsInvalid);
   }, [checkedInfos]);
 
-  console.log("checkedInfos:", checkedInfos);
-  console.log("isInvalid:", isInvalid);
   return (
     <>
       {user && filterLoading1 ? (

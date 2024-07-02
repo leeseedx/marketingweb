@@ -65,6 +65,15 @@ export default function Component() {
     } else {
       console.log("Logged in successfully");
       window.location.href = "/";
+      const { data, error: logError } = await supabase
+        .from("activitylog")
+        .insert([{ account:email, action: "접속", created_at: new Date()}]);
+
+      if (logError) {
+        console.error("Error logging activity:", logError.message);
+      } else {
+        console.log("Activity logged successfully");
+      }
     }
   };
 
@@ -72,7 +81,6 @@ export default function Component() {
     return null;
   }
 
-  console.log('rememberme:', rememberMe)
 
   return (
     <>
