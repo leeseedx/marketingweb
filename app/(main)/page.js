@@ -745,6 +745,8 @@ export default function App() {
     getFilter2(selectedCompanyName);
   }, [selectedCompanyName, selectedProjectName]);
 
+  console.log('selectedCompanyName:',selectedCompanyName)
+
   useEffect(() => {
     if (isPossible) {
       getItems();
@@ -834,24 +836,19 @@ export default function App() {
     if (error) {
       console.log(error);
     } else {
-      if (user.email != "leeseedx@naver.com") {
-        const { error: logError } = await supabase
-          .from("activitylog")
-          .insert([
-            {
-              account: user.email,
-              action: "분류 변경",
-              created_at: new Date(),
-            },
-          ]);
+      const { error: logError } = await supabase.from("activitylog").insert([
+        {
+          account: user.email,
+          action: "분류 변경",
+          created_at: new Date(),
+        },
+      ]);
 
-        if (logError) {
-          console.error("Error logging activity:", logError.message);
-        } else {
-          console.log("Activity logged successfully");
-        }
+      if (logError) {
+        console.error("Error logging activity:", logError.message);
+      } else {
+        console.log("Activity logged successfully");
       }
-
       getItems();
       setModalType("complete");
     }
@@ -911,7 +908,6 @@ export default function App() {
         .order("생성일자", { ascending: false })
         .range(offset, offset + itemsPerPage - 1);
 
-      console.log("registerItems", registerItems);
       const fileName = "registerItems.xlsx";
 
       const changedRegisterItems = registerItems.map(({ id, ...item }) => ({
@@ -980,7 +976,7 @@ export default function App() {
           URL: row[11],
           "Visitor or Follower": isNaN(Number(row[12])) ? 0 : Number(row[12]),
         }));
-        console.log("itemsToInsert", itemsToInsert);
+        // console.log("itemsToInsert", itemsToInsert);
         const emptyRows = [];
         itemsToInsert.forEach((item, index) => {
           if (
@@ -996,7 +992,7 @@ export default function App() {
             }); // Adding 4 because itemsToInsert starts from the 4th row of the Excel file
           }
         });
-        console.log("emptyRows", emptyRows);
+        // console.log("emptyRows", emptyRows);
         if (emptyRows.length > 0) {
           const emptyRowsList = Array.from(emptyRows).join(", ");
           setErrorText(`필수 항목이 누락된 데이타가 있습니다.`);
@@ -1127,7 +1123,7 @@ export default function App() {
             });
           }
         });
-        console.log("resumeFlag:", resumeFlag);
+        // console.log("resumeFlag:", resumeFlag);
         if (emptyRows.length > 0) {
           const emptyRowsList = Array.from(emptyRows).join(", ");
           setErrorText(`필수 항목이 누락된 데이타가 있습니다.`);
@@ -1138,7 +1134,7 @@ export default function App() {
 
         // Extract ID values from itemsToInsert
         const idList = itemsToInsert.map((item) => item.ID);
-        console.log("ID List:", idList);
+        // console.log("ID List:", idList);
 
         // Check for existing Type and ID values
         const { data: existingItems, error: existingItemsError } =

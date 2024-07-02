@@ -276,7 +276,8 @@ export default function App() {
       await supabaseAdmin.auth.admin.createUser({
         email: changeCustomerId,
         password: changeCustomerPw,
-        // user_metadata: { name: 'Yoda' }
+        email_confirm: true,
+
       });
 
     if (errorSignup) {

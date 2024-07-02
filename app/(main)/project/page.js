@@ -303,6 +303,8 @@ export default function App() {
       getFilter2();
       onOpen();
       setSelectedKeys([]);
+      setChangeCompanyName("")
+      setChangeProjectName("")
     }
   };
 
@@ -570,7 +572,7 @@ export default function App() {
                   {prevModalType === "delete" && <p>삭제 되었습니다.</p>}
                 </ModalBody>
                 <ModalFooter>
-                  <Button color="primary" onPress={onClose}>
+                  <Button className="bg-[#b12928] text-white" onPress={onClose}>
                     확인
                   </Button>
                 </ModalFooter>
