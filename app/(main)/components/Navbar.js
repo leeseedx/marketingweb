@@ -11,6 +11,7 @@ import {
   Link,
   Button,
   Image,
+  Spinner,
 } from "@nextui-org/react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
@@ -19,8 +20,9 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [isMaster, setIsMaster] = useState(false);
   const pathname = usePathname();
-  console.log(pathname);
+
   const menuItems = [
     {
       href: "/",
@@ -47,12 +49,13 @@ export default function App() {
       } = await supabase.auth.getUser();
       setUser(user);
       setIsLoading(false);
-      console.log("user:", user);
+      if (user.email === "leeseedx@naver.com") {
+        setIsMaster(true);
+      }
     };
     getUser();
     setUser(user);
     setIsLoading(false);
-    console.log("user:", user);
   }, []);
 
   const handleSignOut = async () => {
@@ -64,8 +67,6 @@ export default function App() {
       window.location.href = "/login";
     }
   };
-
-  console.log("user111:", user);
   return (
     <Navbar onMenuOpenChange={setIsMenuOpen} className="w-full font-bold">
       <NavbarContent className="w-full">
@@ -89,50 +90,62 @@ export default function App() {
         </NavbarBrand>
       </NavbarContent>
 
-      <NavbarContent className="hidden sm:flex gap-4" justify="center">
-        <NavbarItem>
-          <Link
-            href="/"
-            className={`${
-              pathname === "/" ? "font-bold text-primary" : "text-black"
-            }`}
-          >
-            인플루언서 리스트
-          </Link>
-        </NavbarItem>
-
-        <NavbarItem>
-          <Link
-            href="/project"
-            className={`${
-              pathname === "/project" ? "font-bold text-primary" : "text-black"
-            }`}
-          >
-            프로젝트 관리
-          </Link>
-        </NavbarItem>
-        <NavbarItem>
-          <Link
-            href="/account"
-            className={`${
-              pathname.startsWith("/account")
-                ? "font-bold text-primary"
-                : "text-black"
-            }`}
-          >
-            고객사 계정 관리
-          </Link>
-        </NavbarItem>
-        <NavbarItem>
-          <Link
-            href="/contract"
-            className={`${
-              pathname === "/contract" ? "font-bold text-primary" : "text-black"
-            }`}
-          >
-            계약자 관리
-          </Link>
-        </NavbarItem>
+      <NavbarContent className="hidden sm:flex gap-4 " justify="start">
+        {isLoading ? (
+          <Spinner></Spinner>
+        ) : (
+          <>
+            <NavbarItem>
+              <Link
+                href="/"
+                className={`${
+                  pathname === "/" ? "font-bold text-primary" : "text-black"
+                }`}
+              >
+                인플루언서 리스트
+              </Link>
+            </NavbarItem>
+            <NavbarItem>
+              <Link
+                style={{ visibility: isMaster ? "visible" : "hidden" }}
+                href="/project"
+                className={`${
+                  pathname === "/project"
+                    ? "font-bold text-primary"
+                    : "text-black"
+                }`}
+              >
+                프로젝트 관리
+              </Link>
+            </NavbarItem>
+            <NavbarItem>
+              <Link
+                style={{ visibility: isMaster ? "visible" : "hidden" }}
+                href="/account"
+                className={`${
+                  pathname.startsWith("/account")
+                    ? "font-bold text-primary"
+                    : "text-black"
+                }`}
+              >
+                고객사 계정 관리
+              </Link>
+            </NavbarItem>
+            <NavbarItem>
+              <Link
+                style={{ visibility: isMaster ? "visible" : "hidden" }}
+                href="/contract"
+                className={`${
+                  pathname === "/contract"
+                    ? "font-bold text-primary"
+                    : "text-black"
+                }`}
+              >
+                계약자 관리
+              </Link>
+            </NavbarItem>
+          </>
+        )}
       </NavbarContent>
       <NavbarContent justify="end">
         <NavbarItem className="hidden lg:flex">
