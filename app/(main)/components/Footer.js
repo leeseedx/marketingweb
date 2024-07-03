@@ -73,8 +73,8 @@ export default function Component() {
           {/* <AcmeIcon size={44} /> */}
           <img src="/images/logo.png" alt="logo" className="w-1/5" />
         </div>
-        <Spacer y={6} />
-        <div className="flex justify-center gap-x-4">
+        <Spacer y={4} />
+        {/* <div className="flex justify-center gap-x-4">
           {socialItems.map((item) => (
             <Link key={item.name} isExternal className="text-default-400" href={item.href}>
               <span className="sr-only">{item.name}</span>
@@ -82,7 +82,7 @@ export default function Component() {
             </Link>
           ))}
         </div>
-        <Spacer y={4} />
+        <Spacer y={4} /> */}
         <p className="mt-1 text-center text-small text-default-400">
           &copy; 2024 LEESEEDX. All rights reserved.
         </p>

@@ -68,7 +68,8 @@ export default function App() {
     }
   };
   return (
-    <Navbar onMenuOpenChange={setIsMenuOpen} className="w-full font-bold">
+    <Navbar onMenuOpenChange={setIsMenuOpen} className="px-[20vw] font-bold " maxWidth="full">
+      
       <NavbarContent className="w-full">
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}

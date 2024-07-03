@@ -12,7 +12,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <NextUIProvider>
-          <main className="purple-dark text-foreground bg-background w-full">
+          <main className="purple-dark text-foreground bg-background flex-col justify-center items-center">
             <Navbar></Navbar>
             {children}
             <Footer></Footer>

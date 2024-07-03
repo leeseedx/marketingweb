@@ -754,9 +754,10 @@ export default function App() {
         <ModalContent>
           {(onClose3) => (
             <>
-              <ModalBody className="flex p-5">
+              <ModalBody className="flex p-10">
                 <Table
                   className="w-full overflow-y-auto h-[50vh]"
+                  removeWrapper
                 >
                   <TableHeader>
                     <TableColumn>활동일시</TableColumn>
