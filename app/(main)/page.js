@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef,useCallback } from "react";
 import {
   Table,
   TableHeader,
@@ -741,14 +741,17 @@ export default function App() {
     getFilter1();
   }, []);
 
+  
+
   useEffect(() => {
     getFilter2(selectedCompanyName);
-  }, [selectedCompanyName, selectedProjectName]);
+    getItems()
+  }, [selectedCompanyName, selectedProjectName,isPossible]);
 
-  console.log('selectedCompanyName:',selectedCompanyName)
+  
 
   useEffect(() => {
-    if (isPossible) {
+    if (currentPage !== 1 || units !== 15 || filterVariation !== "전체" || filterType !== "전체" || sorting !== "등록순") {
       getItems();
     }
   }, [currentPage, units, filterVariation, filterType, sorting]);
@@ -1384,6 +1387,27 @@ export default function App() {
     setIsInvalid(newIsInvalid);
   }, [checkedInfos]);
 
+  const renderCell = useCallback((user, columnKey) => {
+    const cellValue = user[columnKey];
+
+    switch (columnKey) {
+      case "분류":
+        return (
+          <Button
+            variant="bordered"
+            onClick={() => {
+              onOpen3();
+              getLogs(user.고객사ID);
+            }}
+          >
+            보기
+          </Button>
+        );
+      default:
+        return cellValue;
+    }
+  }, []);
+
   return (
     <>
       {user && filterLoading1 ? (
@@ -1428,7 +1452,7 @@ export default function App() {
                     </Select>
                   </>
                 ) : (
-                  <Spinner></Spinner>
+                  <></>
                 )}
                 {selectedCompanyName && (
                   <Select
@@ -1449,7 +1473,7 @@ export default function App() {
                     )}
                   </Select>
                 )}
-                <Button
+                {/* <Button
                   color="primary"
                   className=""
                   onPress={() => {
@@ -1458,7 +1482,7 @@ export default function App() {
                   }}
                 >
                   검색
-                </Button>
+                </Button> */}
               </div>
             </div>
             <Divider className="my-4" />
@@ -1981,199 +2005,200 @@ export default function App() {
                               />
                             </Tooltip>
                           </div>
-                          <div>
-                            <h3 className="font-bold">비용 정보</h3>
-                          </div>
-                          <div className="grid grid-cols-1 gap-2">
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="Creation cost"
-                              placeholder="Creation cost"
-                              value={checkedInfos?.["Creation cost"]}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  "Creation cost": e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="2nd Usage"
-                              placeholder="2nd Usage"
-                              value={checkedInfos?.["2nd Usage"]}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  "2nd Usage": e.target.value,
-                                })
-                              }
-                            />
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="Mirroring"
-                              placeholder="Mirroring"
-                              value={checkedInfos?.Mirroring}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  Mirroring: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <h3 className="font-bold">컨텐츠 정보</h3>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="Title"
-                              placeholder="Title"
-                              value={checkedInfos?.Title}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  Title: e.target.value,
-                                })
-                              }
-                            />
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="Contents URL"
-                              placeholder="Contents URL"
-                              value={checkedInfos?.["Contents URL"]}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  "Contents URL": e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="grid grid-cols-3 gap-2">
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="Views"
-                              placeholder="Views"
-                              value={checkedInfos?.Views}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  Views: e.target.value,
-                                })
-                              }
-                            />
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="like"
-                              placeholder="like"
-                              value={checkedInfos?.like}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  like: e.target.value,
-                                })
-                              }
-                            />
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="Comment"
-                              placeholder="Comment"
-                              value={checkedInfos?.Comment}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  Comment: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="grid grid-cols-1 gap-2">
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="비고"
-                              placeholder="비고"
-                              value={checkedInfos?.비고}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  비고: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <h3 className="font-bold">트래킹 정보</h3>
-                          </div>
-                          <div className="grid grid-cols-1 gap-2">
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="URL with Parameter"
-                              placeholder="URL with Parameter"
-                              value={checkedInfos?.["URL with Parameter"]}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  "URL with Parameter": e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="URL Shorten"
-                              placeholder="URL Shorten"
-                              value={checkedInfos?.["URL Shorten"]}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  "URL Shorten": e.target.value,
-                                })
-                              }
-                            />
-                            <Input
-                              className="col-span-1"
-                              type="text"
-                              label="logger code"
-                              placeholder="logger code"
-                              value={checkedInfos?.["logger code"]}
-                              isDisabled={!isMaster}
-                              onChange={(e) =>
-                                setCheckedInfos({
-                                  ...checkedInfos,
-                                  "logger code": e.target.value,
-                                })
-                              }
-                            />
-                          </div>
+
                           {isMaster && (
                             <>
+                              <div>
+                                <h3 className="font-bold">비용 정보</h3>
+                              </div>
+                              <div className="grid grid-cols-1 gap-2">
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="Creation cost"
+                                  placeholder="Creation cost"
+                                  value={checkedInfos?.["Creation cost"]}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      "Creation cost": e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="2nd Usage"
+                                  placeholder="2nd Usage"
+                                  value={checkedInfos?.["2nd Usage"]}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      "2nd Usage": e.target.value,
+                                    })
+                                  }
+                                />
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="Mirroring"
+                                  placeholder="Mirroring"
+                                  value={checkedInfos?.Mirroring}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      Mirroring: e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div>
+                                <h3 className="font-bold">컨텐츠 정보</h3>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="Title"
+                                  placeholder="Title"
+                                  value={checkedInfos?.Title}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      Title: e.target.value,
+                                    })
+                                  }
+                                />
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="Contents URL"
+                                  placeholder="Contents URL"
+                                  value={checkedInfos?.["Contents URL"]}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      "Contents URL": e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="Views"
+                                  placeholder="Views"
+                                  value={checkedInfos?.Views}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      Views: e.target.value,
+                                    })
+                                  }
+                                />
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="like"
+                                  placeholder="like"
+                                  value={checkedInfos?.like}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      like: e.target.value,
+                                    })
+                                  }
+                                />
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="Comment"
+                                  placeholder="Comment"
+                                  value={checkedInfos?.Comment}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      Comment: e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="grid grid-cols-1 gap-2">
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="비고"
+                                  placeholder="비고"
+                                  value={checkedInfos?.비고}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      비고: e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div>
+                                <h3 className="font-bold">트래킹 정보</h3>
+                              </div>
+                              <div className="grid grid-cols-1 gap-2">
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="URL with Parameter"
+                                  placeholder="URL with Parameter"
+                                  value={checkedInfos?.["URL with Parameter"]}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      "URL with Parameter": e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="URL Shorten"
+                                  placeholder="URL Shorten"
+                                  value={checkedInfos?.["URL Shorten"]}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      "URL Shorten": e.target.value,
+                                    })
+                                  }
+                                />
+                                <Input
+                                  className="col-span-1"
+                                  type="text"
+                                  label="logger code"
+                                  placeholder="logger code"
+                                  value={checkedInfos?.["logger code"]}
+                                  isDisabled={!isMaster}
+                                  onChange={(e) =>
+                                    setCheckedInfos({
+                                      ...checkedInfos,
+                                      "logger code": e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
                               <div>
                                 <h3 className="font-bold">기타 상세 정보</h3>
                                 <div className="flex gap-2 my-2">

@@ -93,7 +93,7 @@ export default function App() {
 
       <NavbarContent className="hidden sm:flex gap-4 " justify="start">
         {isLoading ? (
-          <Spinner></Spinner>
+          <></>
         ) : (
           <>
             <NavbarItem>

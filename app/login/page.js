@@ -149,8 +149,8 @@ export default function Component() {
                 <p>아이디 비밀번호를 재확인해주세요</p>
               </ModalBody>
               <ModalFooter>
-                <Button variant="light" onPress={onClose}>
-                  Close
+                <Button className="bg-[#b12928] text-white" onPress={onClose}>
+                  확인
                 </Button>
               </ModalFooter>
             </>
